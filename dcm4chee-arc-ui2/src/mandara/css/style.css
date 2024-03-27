@@ -1,0 +1,19 @@
+body {
+  background-color: red; }
+
+ul.nav#mainmenu {
+  background-color: blue; }
+
+.nav#mainmenu li {
+  color: red; }
+
+.logo {
+  background-image: url("../../../../src/assets/img/kapsiki-logo.png");
+  background-repeat: no-repeat;
+  height: 200;
+  margin-left: 10px;
+  position: fixed;
+  right: 32px;
+  bottom: 1px;
+  width: 250;
+  z-index: 1; }
