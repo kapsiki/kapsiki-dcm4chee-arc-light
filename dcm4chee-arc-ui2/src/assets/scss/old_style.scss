@@ -63,6 +63,15 @@ body{
 	.logo{
 		background: transparent;
 		background-image: url("/resources/img/logo.png"), url("../img/kapsiki-logo.png");
+		background-repeat: no-repeat;
+		background-size: contain;
+		height: 5rem;
+		margin: 0 0 10px 0;
+		position: fixed;
+		right: 2px;
+		bottom: 1px;
+		width: 6rem;
+		z-index: 1;
 		
 	    &:hover{
 	    	cursor: pointer;
