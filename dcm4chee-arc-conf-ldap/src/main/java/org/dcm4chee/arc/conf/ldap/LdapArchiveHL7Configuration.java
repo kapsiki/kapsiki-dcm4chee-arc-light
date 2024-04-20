@@ -79,6 +79,10 @@ public class LdapArchiveHL7Configuration extends LdapHL7ConfigurationExtension {
                 ext.getHL7LogFilePattern(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "hl7ErrorLogFilePattern",
                 ext.getHL7ErrorLogFilePattern(), null);
+        LdapUtils.storeNotNullOrDef(ldapObj, attrs, "hl7OutgoingLogFilePattern",
+                ext.getHL7OutgoingLogFilePattern(), null);
+        LdapUtils.storeNotNullOrDef(ldapObj, attrs, "hl7OutgoingErrorLogFilePattern",
+                ext.getHL7OutgoingErrorLogFilePattern(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dicomAETitle", ext.getAETitle(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmRecordAttributeModification",
                 ext.getRecordAttributeModification(), null);
@@ -154,6 +158,8 @@ public class LdapArchiveHL7Configuration extends LdapHL7ConfigurationExtension {
         ext.setScheduleProcedureTemplateURI(LdapUtils.stringValue(attrs.get("hl7ScheduleProcedureTemplateURI"), null));
         ext.setHL7LogFilePattern(LdapUtils.stringValue(attrs.get("hl7LogFilePattern"), null));
         ext.setHL7ErrorLogFilePattern(LdapUtils.stringValue(attrs.get("hl7ErrorLogFilePattern"), null));
+        ext.setHL7OutgoingLogFilePattern(LdapUtils.stringValue(attrs.get("hl7OutgoingLogFilePattern"), null));
+        ext.setHL7OutgoingErrorLogFilePattern(LdapUtils.stringValue(attrs.get("hl7OutgoingErrorLogFilePattern"), null));
         ext.setAETitle(LdapUtils.stringValue(attrs.get("dicomAETitle"), null));
         ext.setRecordAttributeModification(LdapUtils.booleanValue(
                 attrs.get("dcmRecordAttributeModification"), null));
@@ -243,6 +249,10 @@ public class LdapArchiveHL7Configuration extends LdapHL7ConfigurationExtension {
                 aa.getHL7LogFilePattern(), bb.getHL7LogFilePattern(), null);
         LdapUtils.storeDiffObject(ldapObj, mods, "hl7ErrorLogFilePattern",
                 aa.getHL7ErrorLogFilePattern(), bb.getHL7ErrorLogFilePattern(), null);
+        LdapUtils.storeDiffObject(ldapObj, mods, "hl7OutgoingLogFilePattern",
+                aa.getHL7OutgoingLogFilePattern(), bb.getHL7OutgoingLogFilePattern(), null);
+        LdapUtils.storeDiffObject(ldapObj, mods, "hl7OutgoingErrorLogFilePattern",
+                aa.getHL7OutgoingErrorLogFilePattern(), bb.getHL7OutgoingErrorLogFilePattern(), null);
         LdapUtils.storeDiffObject(ldapObj, mods, "dicomAETitle", aa.getAETitle(), bb.getAETitle(), null);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmRecordAttributeModification",
                 aa.getRecordAttributeModification(), bb.getRecordAttributeModification(), null);

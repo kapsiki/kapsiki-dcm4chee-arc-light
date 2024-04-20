@@ -239,6 +239,17 @@ public class StoreServiceEJB {
                             deleteQueryAttributes(prevInstance);
                             Series prevSeries = prevInstance.getSeries();
                             Study prevStudy = prevSeries.getStudy();
+                            prevSeries.setRejectionState(
+                                    hasRejectedInstances(prevSeries) ? RejectionState.PARTIAL : RejectionState.NONE);
+                            deleteSeriesQueryAttributes(prevSeries);
+                            if (prevStudy.getRejectionState() == RejectionState.COMPLETE)
+                                prevStudy.getPatient().incrementNumberOfStudies();
+                            prevStudy.setRejectionState(
+                                    hasSeriesWithOtherRejectionState(prevStudy, RejectionState.NONE)
+                                            ? RejectionState.PARTIAL
+                                            : RejectionState.NONE);
+                            prevStudy.setModifiedTime(new Date());
+                            deleteStudyQueryAttributes(prevStudy);
                             prevSeries.scheduleMetadataUpdate(arcAE.seriesMetadataDelay());
                             prevStudy.setExternalRetrieveAET("*");
                             prevStudy.updateAccessTime(arcDev.getMaxAccessTimeStaleness());
@@ -866,6 +877,7 @@ public class StoreServiceEJB {
                     study.setExpirationDate(ctx.getExpirationDate());
                 result.setCreatedStudy(study);
             } else {
+                checkStudyDeletionInProgress(ctx, study);
                 checkConflictingPID(patMgtCtx, ctx, study.getPatient());
                 checkStorePermission(ctx, study.getPatient());
                 study = updateStudy(ctx, study, now, reasonForTheAttributeModification);
@@ -873,6 +885,7 @@ public class StoreServiceEJB {
             }
             series = createSeries(ctx, study, result);
         } else {
+            checkStudyDeletionInProgress(ctx, series.getStudy());
             checkConflictingPID(patMgtCtx, ctx, series.getStudy().getPatient());
             checkStorePermission(ctx, series.getStudy().getPatient());
             series = updateSeries(ctx, series, now, reasonForTheAttributeModification);
@@ -925,6 +938,16 @@ public class StoreServiceEJB {
         return true;
     }
 
+    private void checkStudyDeletionInProgress(StoreContext ctx, Study study) throws DicomServiceException {
+        if (study.isDeleting()) {
+            String errorMsg = MessageFormat.format(StoreService.DELETION_OF_STUDY_IN_PROGRESS_MSG,
+                    study.getStudyInstanceUID());
+
+            LOG.warn("{}: {}", ctx.getStoreSession(), errorMsg);
+            throw new DicomServiceException(StoreService.DELETION_OF_STUDY_IN_PROGRESS, errorMsg);
+        }
+    }
+
     private void checkConflictingPID(PatientMgtContext patMgtCtx, StoreContext ctx, Patient patientOfStudy)
             throws DicomServiceException {
         StoreSession session = ctx.getStoreSession();
@@ -950,7 +973,7 @@ public class StoreServiceEJB {
         String errorMsg = MessageFormat.format(StoreService.CONFLICTING_PID_NOT_ACCEPTED_MSG,
                 pids, pidsOfStudy, ctx.getStudyInstanceUID());
 
-        LOG.warn(errorMsg);
+        LOG.warn("{}: {}", ctx.getStoreSession(), errorMsg);
         throw new DicomServiceException(StoreService.CONFLICTING_PID_NOT_ACCEPTED, errorMsg);
     }
 

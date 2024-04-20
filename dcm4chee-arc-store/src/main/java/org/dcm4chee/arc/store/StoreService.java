@@ -43,8 +43,6 @@ package org.dcm4chee.arc.store;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.net.ApplicationEntity;
 import org.dcm4che3.net.Association;
-import org.dcm4che3.net.hl7.HL7Application;
-import org.dcm4che3.net.hl7.UnparsedHL7Message;
 import org.dcm4chee.arc.conf.ArchiveAEExtension;
 import org.dcm4chee.arc.conf.Duration;
 import org.dcm4chee.arc.entity.Instance;
@@ -55,7 +53,6 @@ import org.dcm4chee.arc.storage.ReadContext;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
@@ -78,6 +75,7 @@ public interface StoreService {
     int PATIENT_ID_MISSING_IN_OBJECT = 0xA777;
     int CONFLICTING_PID_NOT_ACCEPTED = 0xA778;
     int CONFLICTING_PATIENT_ATTRS_REJECTED = 0xA779;
+    int DELETION_OF_STUDY_IN_PROGRESS = 0xA77A;
 
     String DUPLICATE_REJECTION_NOTE_MSG = "Rejection Note [uid={0}] already received.";
     String SUBSEQUENT_OCCURRENCE_OF_REJECTED_OBJECT_MSG = "Subsequent occurrence of rejected Object [uid={0}, rejection={1}]";
@@ -87,11 +85,12 @@ public interface StoreService {
     String REJECTION_FAILED_ALREADY_REJECTED_MSG  = "Failed to reject Instance[uid={0}] - already rejected.";
     String REJECTION_FOR_RETENTION_POLICY_EXPIRED_NOT_ALLOWED_MSG = "Rejection for Retention Policy Expired not allowed.";
     String RETENTION_PERIOD_OF_STUDY_NOT_YET_EXPIRED_MSG = "Retention Period of Study not yet expired.";
-    String PATIENT_ID_MISSING_IN_OBJECT_MSG = "No Patient ID from trusted Assigning Authority in object.";
+    String PATIENT_ID_MISSING_IN_OBJECT_MSG = "No Patient ID (from trusted Assigning Authority) in object.";
     String NOT_AUTHORIZED = "Storage denied.";
     String FAILED_TO_QUERY_STORE_PERMISSION_SERVICE = "Failed to query Store Permission Service";
     String CONFLICTING_PID_NOT_ACCEPTED_MSG = "Patient ID {0} differs from Patient ID {1} in previous received object of Study[uid={2}].";
     String CONFLICTING_PATIENT_ATTRS_REJECTED_MSG = "Patient with {0} differs from previous received object in attribute {1} {2}";
+    String DELETION_OF_STUDY_IN_PROGRESS_MSG = "Deletion of Study[uid={0}] in progress.";
 
     StoreSession newStoreSession(Association as);
 

@@ -394,7 +394,7 @@
         </xsl:call-template>
         <!-- Verifying Observer Name -->
         <xsl:choose>
-          <xsl:when test="field[32]/text()">
+          <xsl:when test="field[32]/subcomponent[1] or field[32]/subcomponent[2] or field[32]/subcomponent[3]">
             <xsl:call-template name="cnn2pnAttr">
               <xsl:with-param name="tag" select="'0040A075'"/>
               <xsl:with-param name="cn" select="field[32]"/>
@@ -414,6 +414,16 @@
         <DicomAttribute tag="0040A088" vr="SQ"/>
       </Item>
     </DicomAttribute>
+    <!-- Operator Name -->
+    <xsl:choose>
+      <xsl:when test="field[34]/subcomponent[1] or field[34]/subcomponent[2] or field[34]/subcomponent[3]">
+        <xsl:call-template name="cnn2pnAttr">
+          <xsl:with-param name="tag" select="'00081070'"/>
+          <xsl:with-param name="cn" select="field[34]"/>
+        </xsl:call-template>
+      </xsl:when>
+      <xsl:otherwise/>
+    </xsl:choose>
     <xsl:variable name="resultStatus" select="normalize-space(field[25])"/>
     <!--Completion Flag-->
     <xsl:variable name="completionFlag">
@@ -479,7 +489,7 @@
     </Item>
   </xsl:template>
   <xsl:template match="OBR" mode="obsctx">
-    <xsl:if test="field[32]">
+    <xsl:if test="field[32]/subcomponent[1] or field[32]/subcomponent[2] or field[32]/subcomponent[3]">
       <Item number="1">
         <!--Relationship Type-->
         <xsl:call-template name="attr">

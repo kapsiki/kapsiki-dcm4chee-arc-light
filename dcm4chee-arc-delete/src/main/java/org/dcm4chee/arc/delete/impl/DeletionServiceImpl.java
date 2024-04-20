@@ -52,14 +52,9 @@ import org.dcm4che3.net.Device;
 import org.dcm4chee.arc.conf.AllowDeleteStudyPermanently;
 import org.dcm4chee.arc.conf.ArchiveAEExtension;
 import org.dcm4chee.arc.conf.ArchiveDeviceExtension;
-import org.dcm4chee.arc.delete.DeletionService;
-import org.dcm4chee.arc.delete.StudyDeleteContext;
-import org.dcm4chee.arc.delete.StudyNotEmptyException;
-import org.dcm4chee.arc.delete.StudyNotFoundException;
-import org.dcm4chee.arc.entity.Location;
-import org.dcm4chee.arc.entity.RejectionState;
-import org.dcm4chee.arc.entity.Series;
-import org.dcm4chee.arc.entity.Study;
+import org.dcm4chee.arc.conf.LocationStatus;
+import org.dcm4chee.arc.delete.*;
+import org.dcm4chee.arc.entity.*;
 import org.dcm4chee.arc.keycloak.HttpServletRequestInfo;
 import org.dcm4chee.arc.patient.PatientMgtContext;
 import org.dcm4chee.arc.patient.PatientService;
@@ -220,6 +215,10 @@ public class DeletionServiceImpl implements DeletionService {
                         "Deletion of Study with Rejection State: " + rejectionState + " not permitted");
             }
         }
+        if (ejb.updateStudyDeleting(study, true) == 0) {
+            throw new StudyDeletionInProgressException(
+                    "Deletion of Study[uid=" + study.getStudyInstanceUID() + "] in progress");
+        }
         if (rejectionState == RejectionState.EMPTY) {
             ejb.deleteEmptyStudy(ctx);
             return locations;
@@ -236,6 +235,20 @@ public class DeletionServiceImpl implements DeletionService {
             }
         }
         int limit = arcDev.getDeleteStudyChunkSize();
+        if (!reimport) {
+            LOG.debug("Marking objects of {} for deletion", study);
+            int markForDeletion = ejb.markForDeletion(study, Location.ObjectType.DICOM_FILE,
+                    retainObj ? LocationStatus.ORPHANED : LocationStatus.TO_DELETE);
+            LOG.debug("Marked {} objects of {} for deletion", markForDeletion, study);
+            ejb.markForDeletion(study, Location.ObjectType.METADATA, LocationStatus.TO_DELETE);
+            int deleted;
+            do {
+                markForDeletion -= (deleted = ejb.deleteInstancesWithoutLocationsOfStudy(ctx, study, limit));
+            } while (deleted == limit);
+            if (markForDeletion < 0)
+                LOG.info("Successfully delete {} instances of {} without locations from database",
+                        -markForDeletion, study);
+        }
         List<Location> locations1;
         while (!(locations1 = ejb.deleteStudy(ctx, limit, retainObj || reimport)).isEmpty())
             locations.addAll(locations1);
