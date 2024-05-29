@@ -476,7 +476,7 @@ table-bordered, .table-bordered{
   background: rgba(6, 29, 47, 0.84);
 }*/
 .xroad_icon{
-  background-image: url("assets/img/icon-xroad_black.svg");
+  background-image: url("../assets/img/icon-xroad_black.svg");
   background-repeat:no-repeat;
   width: 100%;
   height: 100%;
@@ -484,7 +484,7 @@ table-bordered, .table-bordered{
   display: block;
   background-size: 40%;
   &:hover{
-    background-image: url("assets/img/icon-xroad.svg");
+    background-image: url("../assets/img/icon-xroad.svg");
     background-repeat:no-repeat;
   }
 }
@@ -713,7 +713,7 @@ p-calendar{
   min-width:2px;
   min-height:2px;
   &.csv_icon{
-    background-image: url("assets/img/csv_icon.png");
+    background-image: url("../assets/img/csv_icon.png");
     background-repeat:no-repeat;
     height:26px;
     width:30px;
@@ -721,18 +721,18 @@ p-calendar{
     float: left;
   }
   &.calendar_step_black{
-    background-image: url("assets/img/calendar_step.png");
+    background-image: url("../assets/img/calendar_step.png");
     background-repeat:no-repeat;
     height:26px;
     width:30px;
     background-position: center center;
     float: left;
     &:hover{
-      background-image: url("assets/img/calendar_step_white.png");
+      background-image: url("../assets/img/calendar_step_white.png");
     }
   }
   &.calendar_step_white{
-    background-image: url("assets/img/calendar_step_white.png");
+    background-image: url("../assets/img/calendar_step_white.png");
     background-repeat:no-repeat;
     height:26px;
     width:30px;
@@ -740,7 +740,7 @@ p-calendar{
     float: left;
   }
   &.pdf_icon{
-    background-image: url("assets/img/pdf_icon.png");
+    background-image: url("../assets/img/pdf_icon.png");
     background-repeat:no-repeat;
     height:26px;
     width:30px;
@@ -748,80 +748,80 @@ p-calendar{
     float: left;
   }
   &.csv_icon_black{
-    background-image: url("assets/img/csv_icon_black.png");
+    background-image: url("../assets/img/csv_icon_black.png");
     background-repeat:no-repeat;
     height:100%;
     width:25px;
     background-position: center center;
     float: left;
     &:hover{
-      background-image: url("assets/img/csv_icon.png");
+      background-image: url("../assets/img/csv_icon.png");
     }
   }
   &.recreate_record{
-    background-image: url("assets/img/recreate_record_black.png");
+    background-image: url("../assets/img/recreate_record_black.png");
     background-repeat:no-repeat;
     height:100%;
     width:25px;
     background-position: center center;
     float: left;
     &:hover{
-      background-image: url("assets/img/recreate_record_white.png");
+      background-image: url("../assets/img/recreate_record_white.png");
     }
   }
   &.person_check{
-    background-image: url("assets/img/person_check_black.png");
+    background-image: url("../assets/img/person_check_black.png");
     background-repeat:no-repeat;
     height:100%;
     width:25px;
     background-position: center center;
     float: left;
     &:hover{
-      background-image: url("assets/img/person_check_white.png");
+      background-image: url("../assets/img/person_check_white.png");
     }
   }
   &.unmerge_black{
-    background-image: url("assets/img/unmerge_black.png");
+    background-image: url("../assets/img/unmerge_black.png");
     background-repeat:no-repeat;
     height:100%;
     width:28px;
     background-position: center center;
     float: left;
     &:hover{
-      background-image: url("assets/img/unmerge_white.png");
+      background-image: url("../assets/img/unmerge_white.png");
     }
   }
   &.hand_shake_black{
-    background-image: url("assets/img/hand_shake_black.png");
+    background-image: url("../assets/img/hand_shake_black.png");
     background-repeat:no-repeat;
     height:100%;
     width:25px;
     background-position: center center;
     //float: left;
     &:hover{
-      background-image: url("assets/img/hand_shake_white.png");
+      background-image: url("../assets/img/hand_shake_white.png");
     }
   }
   &.ticker_export_black{
-    background-image: url("assets/img/ticker_export_black.png");
+    background-image: url("../assets/img/ticker_export_black.png");
     background-repeat:no-repeat;
     height:100%;
     width:25px;
     background-position: center center;
     //float: left;
     &:hover{
-      background-image: url("assets/img/ticker_export_white.png");
+      background-image: url("../assets/img/ticker_export_white.png");
     }
   }
   &.mark_export_black{
-    background-image: url("assets/img/mark_export_black.png");
+    background-image: url("../assets/img/mark_export_black.png");
     background-repeat:no-repeat;
     height:15px;
     width:25px;
     background-position: center;
   }
   &.mark_export_white{
-    background-image: url("assets/img/mark_export_white.png");
+    background-image: url("../assets/img/mark_export_white.png");
     background-repeat:no-repeat;
     height:15px;
     width:25px;
@@ -1247,16 +1247,6 @@ mat-grid-list{
     margin-right: -60px;
   }
 }
-//#mainmenu
-#mainmenu{
-  li{
-    a{
-      &.active{
-        background: rgba(32, 46, 58, 0.45);
-      }
-    }
-  }
-}
 
 .slim-loading-bar{
   .slim-loading-bar-progress{
@@ -1286,7 +1276,7 @@ iod-form-generator{
     }
   }
 }
-@import "app/widgets/dialogs/upload-files/upload-files.component";
+@import "../app/widgets/dialogs/upload-files/upload-files.component";
 .repeat4_hover{
   .checkbox_content{
     width: 15%;
@@ -4538,7 +4528,7 @@ $backgroundHoverColorWhite:rgba(255, 255, 255, 0.80);
       }
       .size_range_picker{
         .size_range_icon{
-          background-image: url("assets/img/size_range_white.png");
+          background-image: url("../assets/img/size_range_white.png");
           background-color: rgba(28, 36, 43, 0.92);
           background-repeat: no-repeat;
           background-position: center;
@@ -4592,10 +4582,10 @@ $backgroundHoverColorWhite:rgba(255, 255, 255, 0.80);
       color: rgba(255, 255, 255, 0.90);
       .custom_icon{
         &.csv_icon{
-          background-image: url("assets/img/csv_icon.png");
+          background-image: url("../assets/img/csv_icon.png");
         }
         &.pdf_icon{
-          background-image: url("assets/img/pdf_icon.png");
+          background-image: url("../assets/img/pdf_icon.png");
         }
       }
       &:hover{
@@ -4603,10 +4593,10 @@ $backgroundHoverColorWhite:rgba(255, 255, 255, 0.80);
         color:white;
         .custom_icon{
           &.csv_icon{
-            background-image: url("assets/img/csv_icon.png");
+            background-image: url("../assets/img/csv_icon.png");
           }
           &.pdf_icon{
-            background-image: url("assets/img/pdf_icon.png");
+            background-image: url("../assets/img/pdf_icon.png");
           }
         }
       }

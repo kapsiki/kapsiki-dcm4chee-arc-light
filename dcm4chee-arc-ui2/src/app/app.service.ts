@@ -24,6 +24,7 @@ export class AppService implements OnInit, OnDestroy{
     private serverTimeSubject = new Subject<Date>();
     private securedValue:boolean;
     private _global;
+    //original base URL: "http://127.0.0.1:8080/dcm4chee-arc/"
     private _baseUrl:string = '/dcm4chee-arc/';
     extensionsMap;
     subscription: Subscription;

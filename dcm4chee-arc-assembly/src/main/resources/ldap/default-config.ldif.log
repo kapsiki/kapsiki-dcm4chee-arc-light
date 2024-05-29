@@ -1,0 +1,14 @@
+version: 1
+
+#!RESULT ERROR
+#!CONNECTION ldap://localhost:389
+#!DATE 2024-05-17T15:04:39.551
+#!ERROR  [LDAP result code 34 - invalidDNSyntax] invalid DN
+dn: dicomDeviceName=stowrsd,cn=Devices,cn=DICOM Configuration,dc=maxcrc,dc=c
+ om
+dicomInstalled: TRUE
+dicomDeviceName: stowrsd
+objectClass: dicomDevice
+objectClass: dcmDevice
+dicomPrimaryDeviceType: ARCHIVE
+

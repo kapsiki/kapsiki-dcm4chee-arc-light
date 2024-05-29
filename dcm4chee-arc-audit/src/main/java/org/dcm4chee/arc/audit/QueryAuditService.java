@@ -109,7 +109,7 @@ class QueryAuditService extends AuditService {
     static ParticipantObjectIdentification qidoQuery(AuditInfo auditInfo) {
         ParticipantObjectIdentification poi = new ParticipantObjectIdentification();
         poi.setParticipantObjectID(auditInfo.getField(AuditInfo.Q_POID));
-        poi.setParticipantObjectIDTypeCode(AuditMessages.ParticipantObjectIDTypeCode.REST);
+        poi.setParticipantObjectIDTypeCode(AuditMessages.ParticipantObjectIDTypeCode.TASK);
         poi.setParticipantObjectTypeCode(AuditMessages.ParticipantObjectTypeCode.SystemObject);
         poi.setParticipantObjectTypeCodeRole(AuditMessages.ParticipantObjectTypeCodeRole.Query);
         poi.getParticipantObjectDetail()

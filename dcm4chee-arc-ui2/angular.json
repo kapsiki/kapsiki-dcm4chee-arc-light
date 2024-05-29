@@ -18,14 +18,7 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "localize": [
-              "de",
-              "es",
-              "hi",
-              "it",
-              "ja",
-              "mr",
-              "ru",
-              "zh"
+              "de"
             ],
             "allowedCommonJsDependencies": [
               "lodash",
@@ -49,9 +42,9 @@
               "node_modules/material-design-icons/iconfont/material-icons.css",
               "node_modules/animate.css/animate.min.css",
               "node_modules/glyphicons-only-bootstrap/css/bootstrap.min.css",
-              "src/styles.scss",
-              "src/assets/scss/old_style.scss",
-              "src/assets/scss/old_mobile.scss",
+              "src/mandara/styles.scss",
+              "src/mandara/old_style.scss",
+              "src/mandara/old_mobile.scss",
               "src/mandara/css/style.css"
             ],
             "scripts": [
@@ -452,11 +445,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "dcm4chee-arc-ui2:build",
-            "crossOrigin": "use-credentials",
-            "allowedCommonJsDependencies": [
-              "lodash"
-            ]
+            "port": 8080,
+            "browserTarget": "dcm4chee-arc-ui2:build"
           },
           "configurations": {
             "production": {

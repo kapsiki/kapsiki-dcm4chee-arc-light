@@ -10,13 +10,13 @@ body{
   }
 	padding: 2px 40px;
 	.background{
-		//background: url("../img/bg.jpg");
-		//background: url("../img/156265438.jpg");
-		//background: url("../img/155539853.jpg");
-		background: linear-gradient(180deg, #3b6b8f8a 0%, rgb(87 216 255 / 65%) 100%);
-		background-image: url("/resources/img/bg.jpg"), url("../img/bg.jpg");
-        background-repeat: no-repeat;
-        background-size: 100%;
+		//background: url("../assets/img/bg.jpg");
+		//background: url("../assets/img/156265438.jpg");
+		//background: url("../assets/img/155539853.jpg");
+		//background: linear-gradient(180deg, #3b6b8f8a 0%, rgb(87 216 255 / 65%) 100%);
+		//background-image: url("/resources/img/bg.jpg"), url("../assets/img/bg.jpg");
+        //background-repeat: no-repeat;
+        //background-size: 100%;
 		-webkit-filter: blur(5px);
 	  	-moz-filter: blur(5px);
 	  	-o-filter: blur(5px);
@@ -62,15 +62,15 @@ body{
 	}
 	.logo{
 		background: transparent;
-		background-image: url("../img/kapsiki-logo.png");
+		background-image: url("../assets/img/kapsiki-radiology-logo.svg");
 		background-repeat: no-repeat;
 		background-size: contain;
 		height: 5rem;
-		margin: 0 0 10px 0;
+		margin: 0 0 5px 0;
 		position: fixed;
 		right: 2px;
 		bottom: 1px;
-		width: 6rem;
+		width: 16rem;
 		z-index: 1;
 		
 	    &:hover{
@@ -78,90 +78,6 @@ body{
 	    }
 	}
 }
-ul.nav#mainmenu {
-    background: rgba(27, 42, 53, 0.95) none repeat scroll 0 0;
-    -moz-box-shadow: 0px 0px 21px 2px #000000;
-    -webkit-box-shadow: 0px 0px 21px 2px #000000;
-    box-shadow: 0px 0px 21px 2px #000000;
-    color: white;
-    // display: none;
-    height: 100%;
-    left: 0;
-    position: fixed;
-    top: 0;
-    width: 150px;
-    z-index: 999;
-    margin:0;
-    li {
-	    background: transparent;
-	    color: white;
-	    width: 100%;
-		border-top: 1px solid white;
-		&:last-child{
-			border-bottom: 1px solid white;
-		}
-	    a{
-	    	//background:white;
-	    	background: transparent;
-	    	color:white;
-	    	//text-align: right;
-
-	    }
-	    a:hover{
-	    	background:transparent;
-	    	font-weight: bold;
-	    }
-	    a:active{
-			outline: none;
-	    }
-		a.active{
-			background: rgba(32, 46, 58, 0.45);
-			font-weight:bold;
-		}
-	}
-	li.active{
-		background: rgba(32, 46, 58, 0.45);
-		a{
-			background: transparent;
-			//text-decoration: underline;
-			outline: none;
-		}
-		a:hover{
-			outline: none;
-			font-weight: normal;
-		}
-		a:active{
-			outline: none;
-	    	background: transparent;
-	    }
-	}
-	.glyphicon.glyphicon-align-justify {
-	    background-position: right center;
-	    left: 80%;
-		padding-top: 30px;
-		padding-bottom: 20px;
-	}
-}
-.toggle-button.out {
-	background: rgba(6, 29, 47, 0.88);
-	-moz-box-shadow: 5px 2px 7px 3px #7e7e7e;
-	-webkit-box-shadow: 5px 2px 7px 3px #7e7e7e;
-	box-shadow: 5px 2px 7px 3px #7e7e7e;
-	height: 25px;
-	left: -2px;
-	line-height: 25px;
-	color: white;
-	position: fixed;
-	text-align: center;
-	top: 30px;
-	vertical-align: middle;
-	width: 30px;
-    z-index: 999;
-}
-.toggle-button.out:hover,.toggle-button:hover{
-	cursor: pointer;
-}
-
 /*Hide template before rendered*/
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
   display: none !important;
@@ -379,7 +295,7 @@ device and create an other one with the new name*/
           color:#547CD0;
         }
         &.morefunction {
-          background-image: url("../img/ic_more_vert_black_24.png");
+          background-image: url("../assets/img/ic_more_vert_black_24.png");
           background-position: 2px center;
           background-repeat: no-repeat;
           background-size: 23px auto;
@@ -498,13 +414,13 @@ device and create an other one with the new name*/
 	display:block;
 	height:20px;
 	width:11px;
-	background: url(../img/echo.png);
+	background: url(../assets/img/echo.png);
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 11px auto;
 	margin:0 auto;
 	&:hover{
-		background: url(../img/echo_black.png);
+		background: url(../assets/img/echo_black.png);
 		background-repeat: no-repeat;
 		background-position: center;
 		background-size: 11px auto;
@@ -514,7 +430,7 @@ device and create an other one with the new name*/
 	display: block;
 	width:8%;
 	height: 25px;
-	background: url("../img/dots.png");
+	background: url("../assets/img/dots.png");
 	background-repeat: no-repeat;
 	background-position: 70% center;
 	background-size: auto;
@@ -538,25 +454,25 @@ device and create an other one with the new name*/
 			}
 		}
 		.delete{
-			background: url(../img/delete.png);
+			background: url(../assets/img/delete.png);
 			background-repeat: no-repeat;
 			background-position: center;
 			background-size: 19px auto;
 		}
 		.delete:hover{
-			background: url(../img/delete_color.png);
+			background: url(../assets/img/delete_color.png);
 			background-repeat: no-repeat;
 			background-position: center;
 			background-size: 19px auto;
 		}
 		.create{
-			background: url(../img/add.png);
+			background: url(../assets/img/add.png);
 			background-repeat: no-repeat;
 			background-position: center;
 			background-size: 19px auto;
 		}
 		.create:hover{
-			background: url(../img/add_color.png);
+			background: url(../assets/img/add_color.png);
 			background-repeat: no-repeat;
 			background-position: center;
 			background-size: 19px auto;
@@ -621,7 +537,7 @@ device and create an other one with the new name*/
     	&.info{
 		    border-color: #296ba0;
 		    color: #fff;
-		    background: url(../img/info.png);
+		    background: url(../assets/img/info.png);
     		background-color: rgba(28, 36, 43, 0.92);
 			background-size:55px;
 			background-position: 15px center;
@@ -635,7 +551,7 @@ device and create an other one with the new name*/
 
     	}
     	&.error{
-    		background: url(../img/error.png);
+    		background: url(../assets/img/error.png);
 			background-size:55px;
 			background-position: 15px center;
 			background-repeat: no-repeat;
@@ -650,7 +566,7 @@ device and create an other one with the new name*/
 		    }
     	}
     	&.warning{
-    		background: url(../img/warning.png);
+    		background: url(../assets/img/warning.png);
 			background-size:55px;
 			background-position: 15px center;
 			background-repeat: no-repeat;
@@ -672,7 +588,7 @@ device and create an other one with the new name*/
     }
 }
 .loader{
-	background:url(../img/loader.gif);
+	background:url(../assets/img/loader.gif);
 	background-repeat: no-repeat;
 	background-position: center;
 	display: block;
@@ -2472,7 +2388,7 @@ div[tooltip]{
 			float: left;
 			width: 100%;
 			.content{
-				background: url(../img/factoryblack.png);
+				background: url(../assets/img/factoryblack.png);
 				background-repeat:no-repeat;
 				background-position:20px 5px;
 				padding-left:120px;
@@ -2484,7 +2400,7 @@ div[tooltip]{
     			}
 			}
 			.pre_footer{
-				background: url(../img/factorywhite.png);
+				background: url(../assets/img/factorywhite.png);
 				background-repeat:no-repeat;
 				padding-left:120px;
 				background-position:170px top;
@@ -2503,13 +2419,13 @@ div[tooltip]{
 			    margin-bottom: 30px;
 			    margin-top: 20px;
 				.footer_left{
-					background: url(../img/book.png);
+					background: url(../assets/img/book.png);
 					background-repeat:no-repeat;
 					height: 61px;
 					background-position:60px center;
 				}
 				.footer_right{
-					background: url(../img/ce.png);
+					background: url(../assets/img/ce.png);
 					background-repeat:no-repeat;
 					height: 61px;
 					background-position:32px center;
@@ -2576,7 +2492,7 @@ div[tooltip]{
   }
 }
 .orderbydateasc{
-	background:url("../img/orderbydateasc.png");
+	background:url("../assets/img/orderbydateasc.png");
 	background-repeat:no-repeat;
 	display:inline-block;
 	height:13px;
@@ -2584,7 +2500,7 @@ div[tooltip]{
 	background-position:center;
 }
 .orderbydatedesc{
-	background:url("../img/orderbydatedesc.png");
+	background:url("../assets/img/orderbydatedesc.png");
 	background-repeat:no-repeat;
 	display:inline-block;
 	height:13px;
@@ -2592,7 +2508,7 @@ div[tooltip]{
 	background-position:center;
 }
 .orderbydateasc_uwl{
-	background:url("../img/orderbydateasc.png");
+	background:url("../assets/img/orderbydateasc.png");
 	background-repeat:no-repeat;
 	display:inline-block;
 	height:13px;
@@ -2600,7 +2516,7 @@ div[tooltip]{
 	background-position:center;
 }
 .orderbydatedesc_uwl{
-	background:url("../img/orderbydatedesc.png");
+	background:url("../assets/img/orderbydatedesc.png");
 	background-repeat:no-repeat;
 	display:inline-block;
 	height:13px;
@@ -2608,7 +2524,7 @@ div[tooltip]{
 	background-position:center;
 }
 .orderbyprioritydesc{
-	background:url("../img/high2low.png");
+	background:url("../assets/img/high2low.png");
 	background-repeat:no-repeat;
 	display:inline-block;
 	height:13px;
@@ -2616,7 +2532,7 @@ div[tooltip]{
 	background-position:center;
 }
 .orderbypriorityasc{
-	background:url("../img/low2high.png");
+	background:url("../assets/img/low2high.png");
 	background-repeat:no-repeat;
 	display:inline-block;
 	height:13px;
@@ -2624,7 +2540,7 @@ div[tooltip]{
 	background-position:center;
 }
 .orderbynamedesc{
-	background:url("../img/orderbynamedesc-obsolete.png");
+	background:url("../assets/img/orderbynamedesc-obsolete.png");
 	background-repeat:no-repeat;
 	display:inline-block;
 	height:13px;
@@ -2728,7 +2644,7 @@ div[tooltip]{
 		// 	color: #eceeef;
 		// }
 		.loader {
-		    background: rgba(0, 0, 0, 0) url("../img/loader.gif") no-repeat scroll center center;
+		    background: rgba(0, 0, 0, 0) url("../assets/img/loader.gif") no-repeat scroll center center;
 		    display: inline-block;
 		    height: 11px;
 		    margin-left: 20px;
