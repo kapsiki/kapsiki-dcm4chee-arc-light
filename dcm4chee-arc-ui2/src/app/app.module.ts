@@ -121,7 +121,7 @@ import {MatMenuModule} from "@angular/material/menu";
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import { MatFormFieldModule} from "@angular/material/form-field";
 //import {MatLegacyDialogModule} from "@angular/material/legacy-dialog";
-
+import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
 // registerLocaleData(localeDe, 'de-DE');
 
@@ -210,6 +210,7 @@ import { MatFormFieldModule} from "@angular/material/form-field";
         ReactiveFormsModule,
         BrowserAnimationsModule,
         LoadingBarModule,
+        NgbModule,
         RouterModule.forRoot([
             {
                 path: '',

@@ -1,4 +1,40 @@
+  /*
+   * Navbar
+   */
+
 //Add an orange line at the bottom of the header
 header .container-fluid {
-    border-bottom: 1px solid var(--kapsiki-orange); 
+    border-bottom: 1px solid var(--k-radio-dark-blue);
+    position: fixed;
+    top: 0;
+    /* rtl:begin:ignore */
+    right: 0;
+    left: 0;
+    /* rtl:end:ignore */
+    z-index: 1030;
+    grid-column: 1 / span 3;
+    padding: 10px 0 10px 0; 
+  }
+
+  .navbar-logo {
+    content: url(../../assets/img/kapsiki-radiology-logo.svg);
+    max-width: 200px;
+    height: auto;
+  }
+
+  .bi {
+    display: inline-block;
+    font-size: 1.4rem;
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+    
+  .navbar-brand {
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+    //box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+  }
+  
+  .navbar .form-control {
+    padding: .75rem 1rem;
   }
