@@ -110,7 +110,7 @@ import java.util.stream.Stream;
             "where se.study.studyInstanceUID = ?1"),
 @NamedQuery(name = Series.SIZE_OF_STUDY,
     query = "select sum(se.size) from Series se " +
-            "where se.study.pk = ?1"),
+            "where se.study.pk = ?1 and se.size != -1"),
 @NamedQuery(
     name=Series.SET_SERIES_SIZE,
     query="update Series se set se.size = ?2 where se.pk = ?1"),
@@ -310,6 +310,11 @@ import java.util.stream.Stream;
                 "and se.instancePurgeState = ?2 " +
                 "GROUP BY p, st" ),
 @NamedQuery(
+        name = Series.UPDATE_ACCESS_CONTROL_ID,
+        query = "update Series se set se.accessControlID = ?3 " +
+                "where se.seriesInstanceUID = ?2 and se.accessControlID != ?3 and se.study in (" +
+                "select study from Study study where study.studyInstanceUID = ?1)"),
+@NamedQuery(
         name=Series.FIND_LAST_MODIFIED_SERIES_LEVEL,
         query="SELECT p.updatedTime, st.modifiedTime, se.modifiedTime from Series se " +
                 "JOIN se.study st " +
@@ -323,6 +328,7 @@ import java.util.stream.Stream;
     uniqueConstraints = @UniqueConstraint(columnNames = { "study_fk", "series_iuid" }),
     indexes = {
         @Index(columnList = "series_iuid"),
+        @Index(columnList = "access_control_id"),
         @Index(columnList = "rejection_state"),
         @Index(columnList = "series_no"),
         @Index(columnList = "modality"),
@@ -412,6 +418,7 @@ public class Series {
     public static final String UPDATE_COMPRESSION_COMPLETED = "Series.updateCompressionCompleted";
     public static final String FIND_LAST_MODIFIED_STUDY_LEVEL = "Series.findLastModifiedStudyLevel";
     public static final String FIND_LAST_MODIFIED_SERIES_LEVEL = "Series.findLastModifiedSeriesLevel";
+    public static final String UPDATE_ACCESS_CONTROL_ID = "Series.UpdateAccessControlID";
 
     public enum InstancePurgeState { NO, PURGED, FAILED_TO_PURGE }
 
@@ -597,6 +604,10 @@ public class Series {
     @Basic(optional = false)
     @Column(name = "series_custom3")
     private String seriesCustomAttribute3;
+
+    @Basic(optional = false)
+    @Column(name = "access_control_id")
+    private String accessControlID = "*";
 
     @Column(name = "sending_aet")
     private String sendingAET;
@@ -844,6 +855,14 @@ public class Series {
 
     public String getSeriesCustomAttribute3() {
         return seriesCustomAttribute3;
+    }
+
+    public String getAccessControlID() {
+        return StringUtils.nullify(accessControlID, "*");
+    }
+
+    public void setAccessControlID(String accessControlID) {
+        this.accessControlID = StringUtils.maskNull(accessControlID, "*");
     }
 
     public String getSendingAET() {

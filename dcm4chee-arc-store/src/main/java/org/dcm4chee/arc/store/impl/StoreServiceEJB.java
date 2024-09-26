@@ -107,6 +107,7 @@ public class StoreServiceEJB {
     private static final String IGNORE_FROM_DIFFERENT_SOURCE = IGNORE + " from different source";
     private static final String IGNORE_PREVIOUS_REJECTED = IGNORE + " previous rejected by {}";
     private static final String IGNORE_WITH_EQUAL_DIGEST = IGNORE + " with equal digest";
+    private static final String IGNORE_RELATIONAL_MISMATCH = IGNORE + " of different Series";
     private static final String IGNORE_DUPLICATE_IMPORT =
             "{}: Ignore duplicate imported Instance[studyUID={},seriesUID={},objectUID={}]";
     private static final String REVOKE_REJECTION =
@@ -205,17 +206,24 @@ public class StoreServiceEJB {
                         logInfo(IGNORE, ctx);
                         return result;
                     case SAME_SOURCE:
-                    case SAME_SOURCE_AND_SERIES:
                         if (!isSameSource(ctx, prevInstance)) {
                             logInfo(IGNORE_FROM_DIFFERENT_SOURCE, ctx);
                             return result;
                         }
                     case ALWAYS:
-                    case SAME_SERIES:
                         if (hasLocationWithEqualDigest(ctx, prevInstance)) {
                             logInfo(IGNORE_WITH_EQUAL_DIGEST, ctx);
                             return result;
                         }
+                }
+                if (isRelationalMismatch(ctx, prevInstance)) {
+                    switch (arcAE.relationalMismatchPolicy()) {
+                        case IGNORE:
+                            logInfo(IGNORE_RELATIONAL_MISMATCH, ctx);
+                            return result;
+                        case REJECT:
+                            throw relationalMismatch(ctx, prevInstance);
+                    }
                 }
             }
         }
@@ -339,6 +347,13 @@ public class StoreServiceEJB {
         return result;
     }
 
+    private boolean isRelationalMismatch(StoreContext ctx, Instance prevInstance) {
+        Series prevSeries = prevInstance.getSeries();
+        Study prevStudy = prevSeries.getStudy();
+        return !ctx.getStudyInstanceUID().equals(prevStudy.getStudyInstanceUID())
+                || !ctx.getSeriesInstanceUID().equals(prevSeries.getSeriesInstanceUID());
+    }
+
     private boolean isDuplicateImport(StoreContext ctx, Instance prevInstance) {
         return ctx.getWriteContext(Location.ObjectType.DICOM_FILE) == null
                 && contains(prevInstance.getLocations(), ctx.getReadContext());
@@ -353,6 +368,17 @@ public class StoreServiceEJB {
                 return true;
         }
         return false;
+    }
+
+    private DicomServiceException relationalMismatch(StoreContext ctx, Instance prevInstance) {
+        Series prevSeries = prevInstance.getSeries();
+        Study prevStudy = prevSeries.getStudy();
+        return new DicomServiceException(StoreService.RELATIONAL_MISMATCH,
+                !ctx.getStudyInstanceUID().equals(prevStudy.getStudyInstanceUID())
+                        ? MessageFormat.format(StoreService.RELATIONAL_MISMATCH_MSG, "Study",
+                        ctx.getStudyInstanceUID(), prevStudy.getStudyInstanceUID(), ctx.getSopInstanceUID())
+                        : MessageFormat.format(StoreService.RELATIONAL_MISMATCH_MSG, "Series",
+                        ctx.getSeriesInstanceUID(), prevSeries.getSeriesInstanceUID(), ctx.getSopInstanceUID()));
     }
 
     private DicomServiceException subsequentOccurrenceOfRejectedObject(RejectedInstance rejectedInstance) {
@@ -1248,17 +1274,14 @@ public class StoreServiceEJB {
     }
 
     private Instance findPreviousInstance(StoreContext ctx) {
-        switch (ctx.getStoreSession().getArchiveAEExtension().overwritePolicy()) {
-            case ALWAYS:
-            case SAME_SOURCE:
-            case EVEN_WITH_EQUAL_DIGEST:
-                return findInstance(ctx.getSopInstanceUID());
-            default:
-                return findInstance(
+        ArchiveAEExtension arcAE = ctx.getStoreSession().getArchiveAEExtension();
+        return arcAE.relationalMismatchPolicy() == RelationalMismatchPolicy.STORE_ADDITIONALLY
+                && arcAE.overwritePolicy() != OverwritePolicy.NEVER
+                ? findInstance(
                         ctx.getStudyInstanceUID(),
                         ctx.getSeriesInstanceUID(),
-                        ctx.getSopInstanceUID());
-        }
+                        ctx.getSopInstanceUID())
+                : findInstance(ctx.getSopInstanceUID());
     }
 
     private Instance findInstance(String objectUID) {
@@ -1294,7 +1317,7 @@ public class StoreServiceEJB {
         ArchiveAEExtension arcAE = session.getArchiveAEExtension();
         Study study = new Study();
         study.addStorageID(objectStorageID(ctx));
-        study.setAccessControlID(arcAE.storeAccessControlIDRules()
+        study.setAccessControlID(arcAE.storeAccessControlIDRules(false)
                 .filter(rule -> rule.match(
                                 session.getRemoteHostName(),
                                 session.getCallingAET(),
@@ -1478,6 +1501,8 @@ public class StoreServiceEJB {
     }
 
     private Series createSeries(StoreContext ctx, Study study, UpdateDBResult result) {
+        StoreSession session = ctx.getStoreSession();
+        ArchiveAEExtension arcAE = session.getArchiveAEExtension();
         Series series = new Series();
         setSeriesAttributes(ctx, series);
         series.setSopClassUID(ctx.getSopClassUID());
@@ -1485,6 +1510,16 @@ public class StoreServiceEJB {
         series.setStudy(study);
         series.setInstancePurgeState(Series.InstancePurgeState.NO);
         series.setExpirationState(ExpirationState.UPDATEABLE);
+        arcAE.storeAccessControlIDRules(true)
+                .filter(rule -> rule.match(
+                        session.getRemoteHostName(),
+                        session.getCallingAET(),
+                        session.getLocalHostName(),
+                        session.getCalledAET(),
+                        ctx.getAttributes()))
+                .map(StoreAccessControlIDRule::getStoreAccessControlID)
+                .findFirst()
+                .ifPresent(series::setAccessControlID);
         ArchiveCompressionRule compressionRule = ctx.getCompressionRule();
         if (compressionRule != null && compressionRule.getDelay() != null) {
             series.setCompressionTime(
@@ -1552,11 +1587,15 @@ public class StoreServiceEJB {
             freezeStudyAndItsSeries(series, study, expirationDate, "Freeze");
         }
         else {
-            if (studyExpirationDate == null || studyExpirationDate.compareTo(expirationDate) < 0)
+            if (studyExpirationDate == null || studyExpirationDate.compareTo(expirationDate) < 0) {
+                LOG.info("Set Expiration Date {} to {} using {}", expirationDate, study, retentionPolicy);
                 study.setExpirationDate(expirationDate);
+            }
 
-            if (retentionPolicy.isExpireSeriesIndividually())
+            if (retentionPolicy.isExpireSeriesIndividually()) {
+                LOG.info("Set Expiration Date {} to {} using {}", expirationDate, series, retentionPolicy);
                 series.setExpirationDate(expirationDate);
+            }
         }
     }
 

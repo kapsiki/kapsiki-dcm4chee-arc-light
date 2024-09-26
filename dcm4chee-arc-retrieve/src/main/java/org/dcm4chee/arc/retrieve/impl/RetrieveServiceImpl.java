@@ -408,6 +408,7 @@ public class RetrieveServiceImpl implements RetrieveService {
             builder.patientIDPredicate(predicates, study.join(Study_.patient), ctx.getPatientIDs());
         }
         builder.accessControl(predicates, study, ctx.getAccessControlIDs());
+        builder.seriesAccessControl(predicates, series, ctx.getAccessControlIDs());
         builder.uidsPredicate(predicates, study.get(Study_.studyInstanceUID), ctx.getStudyInstanceUIDs());
         builder.uidsPredicate(predicates, series.get(Series_.seriesInstanceUID), ctx.getSeriesInstanceUIDs());
         predicates.add(cb.equal(series.get(Series_.instancePurgeState), Series.InstancePurgeState.PURGED));
@@ -561,7 +562,11 @@ public class RetrieveServiceImpl implements RetrieveService {
         if (ctx.isUpdateSeriesMetadata())
             return;
 
-        Duration maxAccessTimeStaleness = getArchiveDeviceExtension().getMaxAccessTimeStaleness();
+        ArchiveDeviceExtension arcdev = getArchiveDeviceExtension();
+        if (arcdev.isDBReadOnly())
+            return;
+
+        Duration maxAccessTimeStaleness = arcdev.getMaxAccessTimeStaleness();
         if (maxAccessTimeStaleness == null)
             return;
 
@@ -650,9 +655,11 @@ public class RetrieveServiceImpl implements RetrieveService {
         Collection<InstanceLocations> matches = ctx.getMatches();
         Iterator<InstanceLocations> iter = matches.iterator();
         boolean restrictRetrieveSilently = arcAE.restrictRetrieveSilently();
+        ApplicationEntity transferCapabilitiesAE = StringUtils.maskNull(
+                ctx.getLocalApplicationEntity().transferCapabilitiesAE(), ctx.getLocalApplicationEntity());
         while (iter.hasNext()) {
             InstanceLocations match = iter.next();
-            if (!(ctx.getLocalApplicationEntity().hasTransferCapabilityFor(match.getSopClassUID(), SCU)
+            if (!(transferCapabilitiesAE.hasTransferCapabilityFor(match.getSopClassUID(), SCU)
                     && (noDestinationRestriction
                     || destAE.hasTransferCapabilityFor(match.getSopClassUID(), SCP)))) {
                 iter.remove();
@@ -760,6 +767,11 @@ public class RetrieveServiceImpl implements RetrieveService {
                 }
                 for (ArchiveAttributeCoercion2 coercion : coercions) {
                      try {
+                        String scheme = coercion.getScheme();
+                        if (scheme.equals(ArchiveAttributeCoercion2.NULLIFY_PIXEL_DATA)
+                                || scheme.equals(ArchiveAttributeCoercion2.RETRIEVE_AS_RECEIVED))
+                            LOG.info("Coercion {} applied.", coercion);
+
                         if (coercionFactory.getCoercionProcessor(coercion).coerce(coercion,
                                 inst.getSopClassUID(),
                                 ctx.getLocalHostName(),

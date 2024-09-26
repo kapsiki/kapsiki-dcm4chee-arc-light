@@ -266,7 +266,9 @@ public class ProcedureServiceImpl implements ProcedureService {
     @Override
     public void updateStudySeriesAttributes(ProcedureContext ctx) {
         try {
-            ejb.updateStudySeriesAttributes(ctx);
+            ejb.updateStudySeriesAttributesFromMWL(ctx);
+        } catch (Exception e) {
+            ctx.setException(e);
         } finally {
             if (ctx.getEventActionCode() != null)
                 procedureEvent.fire(ctx);
@@ -301,8 +303,6 @@ public class ProcedureServiceImpl implements ProcedureService {
         for (MWLItem.IDs spsID : spsIDs) {
             ctx.setSpsID(spsID.scheduledProcedureStepID);
             ctx.setStudyInstanceUID(spsID.studyInstanceUID);
-            ctx.setEventActionCode(null);
-            ctx.setException(null);
             updateMWLStatus(ctx);
         }
     }

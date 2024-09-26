@@ -165,6 +165,41 @@ public class StudyServiceEJB {
         LOG.info("{} updated successfully.", series);
     }
 
+    public void updateInstance(StudyMgtContext ctx) throws StudyMissingException, PatientMismatchException {
+        AttributeFilter filter = ctx.getInstanceAttributeFilter();
+        Instance instance = findInstance(ctx);
+        Attributes attrs = instance.getAttributes();
+        Attributes newAttrs = new Attributes(ctx.getAttributes(), filter.getSelection(false));
+        Attributes modified = new Attributes();
+        if (attrs.diff(newAttrs, filter.getSelection(false), modified, true) == 0)
+            return;
+
+        ctx.setEventActionCode(AuditMessages.EventActionCode.Update);
+        ctx.setStudy(instance.getSeries().getStudy());
+        if (ctx.getPatient() == null)
+            ctx.setPatient(instance.getSeries().getStudy().getPatient());
+        else if (instance.getSeries().getStudy().getPatient().getPk() != ctx.getPatient().getPk())
+            throw new PatientMismatchException(ctx.getPatient()
+                    + " found using patient identifiers sent in request payload does not match with "
+                    + instance.getSeries().getStudy().getPatient() + " of " + instance);
+
+        Attributes.unifyCharacterSets(newAttrs, attrs);
+        newAttrs.addSelected(attrs, null, Tag.OriginalAttributesSequence);
+        attrs = newAttrs;
+        instance.setAttributes(ctx.getReasonForModification() != null
+                        ? attrs.addOriginalAttributes(
+                            ctx.getSourceOfPreviousValues(),
+                            new Date(),
+                            ctx.getReasonForModification(),
+                            device.getDeviceName(),
+                            modified)
+                        : attrs,
+                filter, true, ctx.getFuzzyStr());
+        em.createNamedQuery(Series.SCHEDULE_METADATA_UPDATE_FOR_SERIES)
+                .setParameter(1, instance.getSeries().getPk())
+                .executeUpdate();
+    }
+
     public void updateStudyRequest(StudyMgtContext ctx) throws StudyMissingException {
         AttributeFilter studyAttrFilter = ctx.getStudyAttributeFilter();
         List<Series> seriesList = em.createNamedQuery(Series.FIND_SERIES_OF_STUDY_BY_STUDY_IUID_EAGER, Series.class)
@@ -172,9 +207,9 @@ public class StudyServiceEJB {
         if (seriesList.isEmpty())
             throw new StudyMissingException("Study to be updated does not exist: " + ctx.getStudyInstanceUID());
 
-        for (Series series : seriesList) {
+        for (Series series : seriesList)
             updateSeriesRequest(ctx, series);
-        }
+
         if (ctx.getEventActionCode() == null)
             return;
 
@@ -286,6 +321,21 @@ public class StudyServiceEJB {
                     .getSingleResult();
         } catch (NoResultException e) {
             throw new StudyMissingException("Series[uid=" + ctx.getSeriesInstanceUID()
+                    + "] of Study[uid=" + ctx.getStudyInstanceUID()
+                    + "] to be updated does not exist");
+        }
+    }
+
+    private Instance findInstance(StudyMgtContext ctx) throws StudyMissingException {
+        try {
+            return em.createNamedQuery(Instance.FIND_BY_STUDY_SERIES_SOP_IUID_EAGER, Instance.class)
+                    .setParameter(1, ctx.getStudyInstanceUID())
+                    .setParameter(2, ctx.getSeriesInstanceUID())
+                    .setParameter(3, ctx.getSOPInstanceUID())
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            throw new StudyMissingException("Instance[uid=" + ctx.getSOPInstanceUID()
+                    + "] of Series[uid=" + ctx.getSeriesInstanceUID()
                     + "] of Study[uid=" + ctx.getStudyInstanceUID()
                     + "] to be updated does not exist");
         }
@@ -414,6 +464,15 @@ public class StudyServiceEJB {
     }
 
     public void updateAccessControlID(StudyMgtContext ctx) throws StudyMissingException {
+        if (ctx.getSeriesInstanceUID() == null) {
+            updateStudyAccessControlID(ctx);
+            return;
+        }
+
+        updateSeriesAccessControlID(ctx);
+    }
+
+    private void updateStudyAccessControlID(StudyMgtContext ctx) throws StudyMissingException {
         if (ctx.getAttributes() != null) {
             em.createNamedQuery(Study.UPDATE_ACCESS_CONTROL_ID)
                     .setParameter(1, ctx.getStudyInstanceUID())
@@ -423,12 +482,34 @@ public class StudyServiceEJB {
         }
 
         Study study = findStudy(ctx.getStudyInstanceUID());
+        ctx.setStudy(study);
         ctx.setAttributes(study.getAttributes());
         ctx.setPatient(study.getPatient());
         ctx.setEventActionCode(AuditMessages.EventActionCode.Update);
         study.setAccessControlID(ctx.getAccessControlID());
-        LOG.info("Access Control ID : {} successfully applied to study : {}",
+        LOG.info("Access Control ID : {} successfully applied to Study[UID={}]",
                 ctx.getAccessControlID(), ctx.getStudyInstanceUID());
+    }
+
+    private void updateSeriesAccessControlID(StudyMgtContext ctx) throws StudyMissingException {
+        if (ctx.getAttributes() != null) {
+            em.createNamedQuery(Series.UPDATE_ACCESS_CONTROL_ID)
+                    .setParameter(1, ctx.getStudyInstanceUID())
+                    .setParameter(2, ctx.getSeriesInstanceUID())
+                    .setParameter(3, ctx.getAccessControlID())
+                    .executeUpdate();
+            return;
+        }
+
+        Series series = findSeries(ctx);
+        Study study = series.getStudy();
+        ctx.setStudy(study);
+        ctx.setAttributes(study.getAttributes());
+        ctx.setPatient(study.getPatient());
+        ctx.setEventActionCode(AuditMessages.EventActionCode.Update);
+        series.setAccessControlID(ctx.getAccessControlID());
+        LOG.info("Access Control ID : {} successfully applied to Series[UID={}] of Study[UID={}]",
+                ctx.getAccessControlID(), ctx.getSeriesInstanceUID(), ctx.getStudyInstanceUID());
     }
 
     public void moveStudyToPatient(String studyUID, PatientMgtContext ctx)

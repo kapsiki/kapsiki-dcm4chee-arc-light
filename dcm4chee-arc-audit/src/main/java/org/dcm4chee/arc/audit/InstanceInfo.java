@@ -50,10 +50,12 @@ import java.util.HashSet;
  * @since March 2016
  */
 class InstanceInfo {
-    private HashMap<String, HashSet<String>> sopClassMap = new HashMap<>();
-    private HashSet<String> mpps = new HashSet<>();
-    private HashSet<String> acc = new HashSet<>();
-    private HashSet<String> studyDate = new HashSet<>();
+    private final HashMap<String, HashSet<String>> sopClassMap = new HashMap<>();
+    private final HashSet<String> mpps = new HashSet<>();
+    private final HashSet<String> studyDates = new HashSet<>();
+    private final HashSet<String> studyDescriptions = new HashSet<>();
+    private final HashSet<String> modalities = new HashSet<>();
+    private final HashSet<String> seriesDescriptions = new HashSet<>();
     HashSet<String> outcomes = new HashSet<>();
     HashSet<AuditMessages.EventTypeCode> errorCodes = new HashSet<>();
 
@@ -71,34 +73,41 @@ class InstanceInfo {
                 k -> new HashSet<>()).add(info.getField(AuditInfo.SOP_IUID));
     }
 
-    String[] getMppsArray() {
-        return mpps.toArray(new String[0]);
-    }
-
     void addMpps(AuditInfo info) {
         String mppsUID = info.getField(AuditInfo.MPPS_UID);
         if (mppsUID != null)
             mpps.add(mppsUID);
     }
 
-    String[] getAcc() {
-        return acc.toArray(new String[0]);
+    HashSet<String> getStudyDates() {
+        return studyDates;
     }
 
-    void addAcc(AuditInfo info) {
-        String accNum = info.getField(AuditInfo.ACC_NUM);
-        if (accNum != null)
-            acc.add(accNum);
+    HashSet<String> getStudyDescriptions() {
+        return studyDescriptions;
     }
 
-    HashSet<String> getStudyDate() {
-        return studyDate;
+    HashSet<String> getModalities() {
+        return modalities;
     }
 
-    void addStudyDate(AuditInfo info) {
-        String studyDt = info.getField(AuditInfo.STUDY_DATE);
-        if (studyDt != null)
-            studyDate.add(studyDt);
+    HashSet<String> getSeriesDescriptions() {
+        return seriesDescriptions;
+    }
+
+    void addAttrs(AuditInfo info) {
+        addFieldVal(info, AuditInfo.STUDY_DATE, studyDates);
+        addFieldVal(info, AuditInfo.STUDY_DESC, studyDescriptions);
+        addFieldVal(info, AuditInfo.SERIES_DESC, seriesDescriptions);
+        addFieldVal(info, AuditInfo.MODALITY, modalities);
+    }
+
+    private void addFieldVal(AuditInfo info, int field, HashSet<String> values) {
+        String fieldVal = info.getField(field);
+        if (fieldVal == null)
+            return;
+
+        values.add(fieldVal);
     }
 
     public HashSet<String> getMpps() {

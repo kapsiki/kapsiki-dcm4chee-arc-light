@@ -41,12 +41,10 @@
 package org.dcm4chee.arc.audit;
 
 import org.dcm4che3.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author Vrinda Nayak <vrinda.nayak@j4care.com>
@@ -54,9 +52,6 @@ import java.net.URLEncoder;
  */
 
 class AuditInfo {
-
-    private final static Logger LOG = LoggerFactory.getLogger(AuditInfo.class);
-
     static final int CALLING_HOST = 0;
     static final int CALLING_USERID = 1;
     static final int CALLED_USERID = 2;
@@ -71,7 +66,7 @@ class AuditInfo {
     static final int Q_STRING = 11;
     static final int DEST_USER_ID = 12;
     static final int DEST_NAP_ID = 13;
-    static final int MOVE_USER_ID = 14;
+    static final int C_MOVE_ORIGINATOR = 14;
     static final int WARNING = 15;
     static final int FAILED_IUID_SHOW = 16;
     static final int SOP_CUID = 17;
@@ -84,11 +79,11 @@ class AuditInfo {
     static final int OUTGOING_HL7_RECEIVER = 24;
     static final int FILTERS = 25;
     static final int COUNT = 26;
-    static final int QUEUE_MSG = 27;
+    static final int TASK = 27;
     static final int TASK_POID = 28;
     static final int ERROR_CODE = 29;
     static final int PAT_MISMATCH_CODE = 30;
-    static final int CONN_TYPE = 31;
+    static final int SERVICE_EVENT_TYPE = 31;
     static final int PAT_VERIFICATION_STATUS = 32;
     static final int PDQ_SERVICE_URI = 33;
     static final int IMPAX_ENDPOINT = 34;
@@ -98,6 +93,11 @@ class AuditInfo {
     static final int QUEUE_NAME = 38;
     static final int STATUS = 39;
     static final int FHIR_WEB_APP_NAME = 40;
+    static final int ARCHIVE_USER_ID = 41;
+    static final int QR_LEVEL = 42;
+    static final int STUDY_DESC = 43;
+    static final int SERIES_DESC = 44;
+    static final int MODALITY = 45;
 
     private final String[] fields;
 
@@ -117,7 +117,7 @@ class AuditInfo {
                 encode(i.queryString),
                 encode(i.destUserID),
                 encode(i.destNapID),
-                encode(i.moveUserID),
+                encode(i.cMoveOriginator),
                 encode(i.warning),
                 encode(i.failedIUIDShow ? String.valueOf(true) : null),
                 encode(i.sopCUID),
@@ -130,11 +130,11 @@ class AuditInfo {
                 encode(i.outgoingHL7Receiver),
                 encode(i.filters),
                 encode(String.valueOf(i.count)),
-                encode(i.queueMsg),
+                encode(i.task),
                 encode(i.taskPOID),
                 encode(i.errorCode),
                 encode(i.patMismatchCode),
-                encode(i.connType != null ? i.connType.name() : null),
+                encode(i.serviceEventType),
                 encode(i.patVerificationStatus != null ? i.patVerificationStatus.name() : null),
                 encode(i.pdqServiceURI),
                 encode(i.impaxEndpoint),
@@ -143,7 +143,12 @@ class AuditInfo {
                 encode(i.findSCP),
                 encode(i.queueName),
                 encode(i.status),
-                encode(i.fhirWebAppName)
+                encode(i.fhirWebAppName),
+                encode(i.archiveUserID),
+                encode(i.qrLevel),
+                encode(i.studyDesc),
+                encode(i.seriesDesc),
+                encode(i.modality)
         };
     }
 
@@ -159,24 +164,14 @@ class AuditInfo {
         if (val == null)
             return null;
 
-        try {
-            return URLDecoder.decode(val, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            LOG.info("URL decoding of value {} failed", val);
-            return val;
-        }
+        return URLDecoder.decode(val, StandardCharsets.UTF_8);
     }
 
     private static String encode(String val) {
         if (val == null)
             return null;
 
-        try {
-            return URLEncoder.encode(val, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            LOG.info("URL encoding of value {} failed", val);
-            return val;
-        }
+        return URLEncoder.encode(val, StandardCharsets.UTF_8);
     }
 
     @Override

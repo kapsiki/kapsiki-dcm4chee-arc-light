@@ -139,9 +139,18 @@ export class j4care {
         return true;
     }
     static hasSet(obj, path){
-        if(_.hasIn(obj,path) && j4care.isSet(_.get(obj,path)))
-            return true;
-        return false;
+        return (_.hasIn(obj,path) && j4care.isSet(_.get(obj,path)))
+    }
+
+    static appendStringIfExist(txt:string, suffix:string){
+        try {
+            if(txt && txt != ""){
+                return txt + suffix
+            }
+        }catch (e){
+            return  ""
+        }
+        return "";
     }
     static getOrNone(obj,path,defaultReturn?){
         if(this.hasSet(obj,path)){
@@ -475,6 +484,29 @@ export class j4care {
             return [];
         }
     }
+
+    /*
+    *Removes the last empty elements until it finds one that is not empty
+    *Example:
+    * input: ['test', 'selam', '', 'hb', '', '']
+    * output:["test", "selam", "", "hb"]
+    * */
+    static removeLastEmptyStringsFromArray(arr:string[]) {
+        try{
+            let emergencyBrake = arr.length;
+            while (arr.length > 0 && emergencyBrake > 0) {
+                if (!arr[arr.length - 1] || arr[arr.length - 1] === '') {
+                    arr.splice(arr.length - 1, 1);
+                } else {
+                    break;
+                }
+                emergencyBrake--;
+            }
+            return arr;
+        }catch (e) {
+            return arr;
+        }
+    };
 
     static isAtLeastOneElementOfArrayInArray(firstArray:string[],secondArray:string[]){
         try{

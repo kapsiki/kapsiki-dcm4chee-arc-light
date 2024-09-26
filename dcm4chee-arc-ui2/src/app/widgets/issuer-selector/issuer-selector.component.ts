@@ -1,5 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import * as _ from "lodash-es";
+import {j4care} from "../../helpers/j4care.service";
 @Component({
   selector: 'issuer-selector',
   templateUrl: './issuer-selector.component.html',
@@ -11,7 +12,8 @@ export class IssuerSelectorComponent implements OnInit {
 
     @Input() placeholder:string;
     @Input() title:string;
-    @Input() issuers:string[];
+    @Input() issuers:any[];
+    splitters = [];
     @Input('model')
     set model(value){
         console.log("value",value);
@@ -24,24 +26,67 @@ export class IssuerSelectorComponent implements OnInit {
     selectorOpen:boolean = false;
     filterModel = {};
     maiInputValid:boolean = true;
+    viewLimit = 4;
     constructor() { }
 
     ngOnInit() {
     }
 
     set(){
-        this.model = `${_.values(this.filterModel).join('&')}`
+        let issuerPart  = _.values(_.pickBy(this.filterModel,(value,key)=>key != "PatientID"));
+        issuerPart = j4care.removeLastEmptyStringsFromArray(issuerPart).join('&');
+        if(issuerPart){
+            this.model = `${j4care.appendStringIfExist(this.filterModel["PatientID"], "^^^")}${issuerPart}`;
+        }else{
+            this.model = `${this.filterModel?.["PatientID"] || ''}`;
+        }
         this.modelChange.emit(this.filterModel);
-        this.selectorOpen = false;
     }
     togglePicker(){
         this.selectorOpen = !this.selectorOpen;
     }
     hardClear(){
+        this.clearInnerModels();
         this.model = "";
         this.modelChange.emit(undefined);
     }
     filterChanged(){
+        this.extractModelsFromString();
+        this.modelChange.emit(this.filterModel);
+    }
 
+    initSplitters(){
+        this.splitters = [];
+        this.issuers.forEach((value,i)=>{
+            if(i === 0 && _.hasIn(this.issuers,"0.key") && this.issuers[0].key === "PatientID"){
+                this.splitters[i] = "^^^";
+            }else{
+                this.splitters[i] = "&";
+            }
+        });
+    }
+    extractModelsFromString(){
+        try{
+            if(this.model){
+                let modelTemp = this.model;
+                this.initSplitters();
+                this.issuers.forEach((value,i)=>{
+                    const split = this.splitters[i] || "&";
+                    let splitted = modelTemp.split(split);
+                    this.filterModel[this.issuers[i].key] = splitted[0].replace(/\&/g,"").replace(/\^/g,"") || "";
+                    splitted.shift();
+                    modelTemp = splitted.join(split);
+                });
+            }else{
+                this.clearInnerModels();
+            }
+        }catch (e) {
+
+        }
+    }
+    clearInnerModels(){
+        this.issuers.forEach(issue=>{
+            this.filterModel[issue.key] = "";
+        })
     }
 }

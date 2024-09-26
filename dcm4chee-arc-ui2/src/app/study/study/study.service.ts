@@ -106,20 +106,24 @@ export class StudyService {
     * return patientid - combination of patient id, issuer
     * */
     getPatientId(patient) {
-        console.log('patient', patient);
-        let obj;
-        if (_.hasIn(patient, '[0]')) {
-            obj = patient[0];
-        } else {
-            obj = patient;
+        try{
+            console.log('patient', patient);
+            let obj;
+            if (_.hasIn(patient, '[0]')) {
+                obj = patient[0];
+            } else {
+                obj = patient;
+            }
+            const allParts = [this.getPatientIdentifierOf(obj)]
+            if(_.hasIn(obj,'["00101002"].Value')){
+                _.get(obj,'["00101002"].Value').forEach(subAttrs=>{
+                    allParts.push(this.getPatientIdentifierOf(subAttrs));
+                })
+            }
+            return allParts.join("~");
+        }catch (e) {
+            return "";
         }
-        const allParts = [this.getPatientIdentifierOf(obj)]
-        if(_.hasIn(obj,'["00101002"].Value')){
-            _.get(obj,'["00101002"].Value').forEach(subAttrs=>{
-                allParts.push(this.getPatientIdentifierOf(subAttrs));
-            })
-        }
-        return allParts.join("~");
     }
     getPatientIdentifierOf(attrs){
         let patientId = '';
@@ -2519,6 +2523,28 @@ export class StudyService {
                                 }
                             },{
                                 icon: {
+                                    tag: 'i',
+                                    cssClass: 'material-icons',
+                                    text: 'vpn_key'
+                                },
+                                click: (e) => {
+                                    actions.call($this, {
+                                        event: "click",
+                                        level: "series",
+                                        action: "update_access_control_id"
+                                    }, e);
+                                },
+                                id: "series_update_access_control_id",
+                                title: $localize `:@@study.update_series_access_control_id:Update Series Access Control ID`,
+                                showIf:(e,config)=>{
+                                    return  this.selectedWebServiceHasClass(options.selectedWebService,"DCM4CHEE_ARC_AET")
+                                },
+                                permission: {
+                                    id: 'action-studies-study',
+                                    param: 'edit'
+                                }
+                            },{
+                                icon: {
                                     tag: 'span',
                                     cssClass: `custom_icon hand_shake_black`,
                                     text: ''
@@ -3873,29 +3899,27 @@ export class StudyService {
 
             return schema;
     }
-    updateAccessControlIdOfSelections(multipleObjects: SelectionActionElement, selectedWebService: DcmWebApp, accessControlID:string){
-        return forkJoin((<any[]>multipleObjects.getAllAsArray().filter((element: SelectedDetailObject) => (element.dicomLevel === "study")).map((element: SelectedDetailObject) => {
-            return this.$http.put(
-                `${this.getURL(element.object.attrs, selectedWebService, "study")}/access/${accessControlID}`,
-                {},
-                this.jsonHeader
-            );
-        })));
+
+    updateAccessControlIdOfSelections(multipleObjects: SelectionActionElement, studyWebService: StudyWebService, accessControlID:string){
+        return forkJoin((<any[]> multipleObjects.getAllAsArray().filter((element: SelectedDetailObject) =>
+            (element.dicomLevel === "study" || element.dicomLevel === "series"))
+            .map((element: SelectedDetailObject) => {
+                return this.$http.put(`${this.getURL(element.object.attrs, studyWebService.selectedWebService, element.dicomLevel)}/access/${accessControlID}`, {});
+            })));
     }
-    updateAccessControlId(matchingMode:AccessControlIDMode, selectedWebService:DcmWebApp, accessControlID:string, studyInstanceUID?:string, filters?:any){
-        if(matchingMode === "update_access_control_id_to_matching"){
-            return this.$http.post(
-                `${this.getDicomURL("study", selectedWebService)}/access/${accessControlID}${j4care.param(filters)}`,
-                {},
-                this.jsonHeader
-            );
-        }else{
-            return this.$http.put(
-                `${this.getDicomURL("study", selectedWebService)}/${studyInstanceUID}/access/${accessControlID}`,
-                {},
-                this.jsonHeader
-            );
-        }
+
+    updateAccessControlIdSingle(attrs, studyWebService: StudyWebService, level: DicomLevel, accessControlID:string){
+        return this.$http.put(
+            `${this.getURL(attrs, studyWebService.selectedWebService, level)}/access/${accessControlID}`,
+            {},
+            this.jsonHeader
+        );
+    }
+    updateAccessControlIdMatching(studyWebService: StudyWebService, level: DicomLevel, accessControlID:string, filters?:any){
+        let url = level === "matching_studies"
+                    ? `${this.getDicomURL("study", studyWebService.selectedWebService)}/access/${accessControlID}${j4care.param(filters)}`
+                    : `${this.getDicomURL("series", studyWebService.selectedWebService)}/access/${accessControlID}${j4care.param(filters)}`;
+        return this.$http.post(url, {}, this.jsonHeader);
     }
 
     modifySeries(series, deviceWebservice: StudyWebService, header: HttpHeaders, params:any,
@@ -4122,11 +4146,16 @@ export class StudyService {
             return this.getModifyPatientUrl(deviceWebservice).pipe(
                 switchMap((url:string)=>{
                     console.log("url",url);
-                    return this.$http.put(
-                        `${url}/${this.getPatientId(selectedElements.preActionElements.getAttrs("patient")[0])}?merge=true`,
-                        selectedElements.postActionElements.getAttrs("patient"),
-                        this.jsonHeader
-                    )
+                    const prePatientId = this.getPatientId(selectedElements.preActionElements.getAttrs("patient")[0]);
+                    if(prePatientId){
+                        return this.$http.put(
+                            `${url}/${prePatientId}?merge=true`,
+                            selectedElements.postActionElements.getAttrs("patient"),
+                            this.jsonHeader
+                        )
+                    }else {
+                        return throwError({error:$localize `:@@patient_id_not_found:Patient id not found!`});
+                    }
                 })
             )
         }

@@ -213,7 +213,8 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
             new SelectDropdown("reject_multiple_study",$localize `:@@study.reject_multiple:Reject matching studies`),
             new SelectDropdown("reject_multiple_series",$localize `:@@study.reject_multiple_series:Reject matching series`),
             new SelectDropdown("retrieve_multiple",$localize `:@@study.retrieve_multiple:Retrieve matching studies`),
-            new SelectDropdown("update_access_control_id_to_matching",$localize `:@@study.update_access_control_id_to_matching:Update access Control ID`),
+            new SelectDropdown("update_access_control_id_to_matching",$localize `:@@study.update_access_control_id_to_matching:Update access Control ID to matching studies`),
+            new SelectDropdown("update_access_control_id_to_matching_series",$localize `:@@study.update_access_control_id_to_matching_series:Update access Control ID to matching series`),
             new SelectDropdown("storage_verification_studies",$localize `:@@storage_verification_studies:Storage Verification Studies`),
             new SelectDropdown("storage_verification_series",$localize `:@@storage_verification_series:Storage Verification Series`),
             new SelectDropdown("download_patients",$localize `:@@study.download_patients:Download patients as CSV`),
@@ -602,8 +603,11 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
                 this.downloadCSV(undefined, "uwl");
                 break;
             case "update_access_control_id_to_matching":
-                this.updateAccessControlId(e);
+                this.updateAccessControlId("matching_studies", e);
                break;
+            case "update_access_control_id_to_matching_series":
+                this.updateAccessControlId("matching_series", e);
+                break;
             case "schedule_storage_commit_for_matching_studies":
                 this.sendStorageCommitmentRequestMatchingStudies();
                break;
@@ -657,7 +661,7 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
             this.rejectRestoreMultipleObjects();
         }
         if(e === "update_access_control_id_to_selections"){
-            this.updateAccessControlId(e);
+            this.updateAccessControlId("update_access_control_id_to_selections", e);
         }
         if(e === "change_sps_status_on_selections"){
             this.changeSPSStatus(e,"selected");
@@ -1124,7 +1128,7 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
                 this.viewInstance(model);
             }
             if(id.action === "update_access_control_id"){
-                this.updateAccessControlId(id.action, model);
+                this.updateAccessControlId(id.level, id.action, model);
             }
             if(id.action === "change_sps_status"){
                 this.changeSPSStatus(model, "single");
@@ -3104,6 +3108,7 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
                                 case "export_multiple_series":
                                 case "reject_multiple_series":
                                 case "download_series":
+                                case "update_access_control_id_to_matching_series":
                                 case "storage_verification_series":
                                 case "schedule_storage_commit_for_matching_series":
                                 case "instance_availability_notification_for_matching_series":
@@ -4076,8 +4081,8 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
         this.modifyPatient(patient, 'edit', config);
     };
 
-    modifyPatient(patient, mode:("edit"|"create") , config?:{saveLabel:string,titleLabel:string}){
-        let originalPatientObject;
+    modifyPatient(patient:PatientDicom, mode:("edit"|"create") , config?:{saveLabel:string,titleLabel:string}){
+        let originalPatientObject:any;
         if(mode === "edit"){
             originalPatientObject = _.cloneDeep(patient);
         }
@@ -4085,7 +4090,9 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
         // this.config.viewContainerRef = this.viewContainerRef;
         this.service.getPatientIod().subscribe((iod) => {
             let patientFiltered = _.cloneDeep(patient);
-            patientFiltered.attrs = new ComparewithiodPipe().transform(patient.attrs, iod);
+            let onlyPrivateAttrs:any;
+            [patientFiltered.attrs, onlyPrivateAttrs] = new ComparewithiodPipe().transform(patient.attrs, [iod, "both"]);
+
             this.service.initEmptyValue(patientFiltered.attrs);
             this.dialogRef = this.dialog.open(EditPatientComponent, {
                 height: 'auto',
@@ -4100,21 +4107,23 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
             this.dialogRef.componentInstance.titleLabel = config.titleLabel;
             this.dialogRef.afterClosed().subscribe(result => {
                 if (result){
-                    j4care.removeKeyFromObject(patient.attrs, ["required","enum", "multi"]);
+                    const tempAttrs = {...result.attrs, ...onlyPrivateAttrs};
+                    j4care.removeKeyFromObject(tempAttrs, ["required","enum", "multi"]);
                     if(mode === "create"){
-                        this.service.modifyPatient(undefined,patient.attrs,this.studyWebService).subscribe(res=>{
+                        this.service.modifyPatient(undefined,tempAttrs,this.studyWebService).subscribe(res=>{
                             this.appService.showMsg($localize `:@@study.patient_created_successfully:Patient created successfully`);
                         },err=>{
                             this.httpErrorHandler.handleError(err);
                         });
                     }else{
-                        this.service.modifyPatient(this.service.getPatientId(originalPatientObject.attrs),patient.attrs,this.studyWebService).subscribe(res=>{
+                        this.service.modifyPatient(this.service.getPatientId(originalPatientObject.attrs),tempAttrs,this.studyWebService).subscribe(res=>{
                             this.appService.showMsg($localize `:@@study.patient_updated_successfully:Patient updated successfully`);
                         },err=>{
                             _.assign(patient, originalPatientObject);
                             this.httpErrorHandler.handleError(err);
                         });
                     }
+                    patient.attrs = tempAttrs;
                 }else{
                     _.assign(patient, originalPatientObject);
                 }
@@ -4220,12 +4229,29 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
             }
         });
     }
-    updateAccessControlId(mode?:AccessControlIDMode, model?:any){
-        const matching = mode === "update_access_control_id_to_matching";
-        const innerText = matching ? $localize `:@@inner_text.of_matching_studies:of matching studies`: $localize `:@@inner_text.of_the_study: of the study`;
+
+    updateAccessControlId(dicomLevel?:DicomLevel, mode?:AccessControlIDMode, model?:any){
+        let matching = dicomLevel === "matching_studies" || dicomLevel === "matching_series";
+        let innerText;
+        switch (dicomLevel) {
+            case "matching_studies":
+                innerText = $localize `:@@inner_text.of_matching_studies:of matching studies`;
+                break;
+            case "matching_series":
+                innerText = $localize `:@@inner_text.of_matching_series:of matching series`
+                break;
+            case "study":
+                innerText = $localize `:@@inner_text.of_the_study: of the study`;
+                break;
+            case "series":
+                innerText = $localize `:@@inner_text.of_the_series: of the series`;
+                break;
+            case "update_access_control_id_to_selections":
+                innerText = $localize `:@@inner_text.of_the_selected_entities: of the selected entities`;
+                break;
+        }
         this.confirm({
-            content: $localize `:@@study.update_study_access_control_id_param:Update Study Access Control ID ${innerText}:innerText:
-`,
+            content: $localize `:@@study.update_access_control_id_param:Update Access Control ID ${innerText}:innerText:`,
             doNotSave:true,
             form_schema:[
                 [
@@ -4253,15 +4279,23 @@ export class StudyComponent implements OnInit, OnDestroy, AfterContentChecked{
                 let service;
                 let msg;
                 if(matching){
-                    service = this.service.updateAccessControlId(mode, this.studyWebService.selectedWebService,ok.schema_model.accessControlID || 'null',undefined,this.createStudyFilterParams(true,true))
-                    msg = $localize `:@@access_control_id_updated_matching:Access Control ID updated successfully to matching studies`;
+                    service = this.service.updateAccessControlIdMatching(
+                                            this.studyWebService,
+                                            dicomLevel,
+                              ok.schema_model.accessControlID || 'null',
+                                            this.createStudyFilterParams(true,true));
+                    msg = dicomLevel === "matching_studies"
+                            ? $localize `:@@access_control_id_updated_matching:Access Control ID updated successfully to matching studies`
+                            : $localize `:@@access_control_id_updated_matching_series:Access Control ID updated successfully to matching series`;
                 }else{
-                    if(mode === "update_access_control_id_to_selections"){
-                        service = this.service.updateAccessControlIdOfSelections(this.selectedElements,this.studyWebService.selectedWebService,ok.schema_model.accessControlID || 'null')
-                        msg = $localize `:@@access_control_id_updated_selected:Access Control ID updated successfully to selected studies!`
+                    if(dicomLevel === "update_access_control_id_to_selections"){
+                        service = this.service.updateAccessControlIdOfSelections(this.selectedElements,this.studyWebService,ok.schema_model.accessControlID || 'null')
+                        msg = $localize `:@@access_control_id_updated_selected:Access Control ID updated successfully to selected entities!`
                     }else{
-                        service = this.service.updateAccessControlId(mode, this.studyWebService.selectedWebService,ok.schema_model.accessControlID || 'null',this.service.getStudyInstanceUID(model.attrs))
-                        msg = $localize `:@@access_control_id_updated_the_study:Access Control ID updated successfully to the study!`
+                        service = this.service.updateAccessControlIdSingle(model.attrs, this.studyWebService, dicomLevel, ok.schema_model.accessControlID || 'null');
+                        msg = dicomLevel === "study"
+                                ? $localize `:@@access_control_id_updated_the_study:Access Control ID updated successfully to the study!`
+                                : $localize `:@@access_control_id_updated_the_series:Access Control ID updated successfully to the series!`;
                     }
                 }
                 this.cfpLoadingBar.start();

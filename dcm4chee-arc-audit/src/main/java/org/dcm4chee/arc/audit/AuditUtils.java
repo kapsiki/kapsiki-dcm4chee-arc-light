@@ -40,11 +40,10 @@
 package org.dcm4chee.arc.audit;
 
 import org.dcm4che3.audit.AuditMessages;
-import org.dcm4che3.conf.api.ConfigurationException;
-import org.dcm4che3.conf.api.IApplicationEntityCache;
+import org.dcm4che3.hl7.HL7Message;
+import org.dcm4che3.hl7.HL7Segment;
 import org.dcm4che3.net.hl7.UnparsedHL7Message;
-import org.dcm4chee.arc.conf.HL7OrderSPSStatus;
-import org.dcm4chee.arc.conf.SPSStatus;
+import org.dcm4chee.arc.HL7ConnectionEvent;
 import org.dcm4chee.arc.delete.StudyDeleteContext;
 import org.dcm4chee.arc.entity.Patient;
 import org.dcm4chee.arc.entity.RejectionState;
@@ -53,7 +52,9 @@ import org.dcm4chee.arc.event.ArchiveServiceEvent;
 import org.dcm4chee.arc.event.RejectionNoteSent;
 import org.dcm4chee.arc.event.TaskOperation;
 import org.dcm4chee.arc.hl7.ArchiveHL7Message;
+import org.dcm4chee.arc.keycloak.HttpServletRequestInfo;
 import org.dcm4chee.arc.patient.PatientMgtContext;
+import org.dcm4chee.arc.procedure.ProcedureContext;
 import org.dcm4chee.arc.store.StoreContext;
 import org.dcm4chee.arc.store.StoreSession;
 import org.slf4j.Logger;
@@ -61,7 +62,6 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collection;
 
 /**
  * @author Vrinda Nayak <vrinda.nayak@j4care.com>
@@ -70,6 +70,35 @@ import java.util.Collection;
 
 class AuditUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuditUtils.class);
+    final static String APPOINTMENTS = "SIU";
+    final static String OBSERVATION_REPORTING = "ORU^R01";
+    final static String IMAGING_ORDER = "OMI^O19";
+    final static String CREATE_PATIENT = "ADT^A28";
+    final static String MERGE_PATIENTS = "ADT^A40";
+    final static String CHANGE_PATIENT_ID = "ADT^A47";
+    final static String PID_SEGMENT = "PID";
+    final static int PID_SEGMENT_PATIENT_ID = 3;
+    final static int PID_SEGMENT_PATIENT_NAME = 5;
+    final static String ORC_SEGMENT = "ORC";
+    final static int ORC_SEGMENT_ORDER_CONTROL = 1;
+    final static int ORC_SEGMENT_ORDER_STATUS = 5;
+    final static String OBR_SEGMENT = "OBR";
+    final static int OBR_SEGMENT_ACCESSION_NO = 18;
+    final static int OBR_SEGMENT_REQ_PROC_ID = 19;
+    final static String ZDS_SEGMENT = "ZDS";
+    final static int ZDS_SEGMENT_STUDY_IUID = 1;
+    final static String IPC_SEGMENT = "IPC";
+    final static int IPC_SEGMENT_ACCESSION_NO = 1;
+    final static int IPC_SEGMENT_REQ_PROC_ID = 2;
+    final static int IPC_SEGMENT_STUDY_IUID = 3;
+    final static String MRG_SEGMENT = "MRG";
+    final static int MRG_SEGMENT_PATIENT_ID = 1;
+    final static int MRG_SEGMENT_PATIENT_NAME = 7;
+    final static String PDQ_DICOM = "pdq-dicom";
+    final static String PDQ_HL7 = "pdq-hl7";
+    final static String PDQ_FHIR = "pdq-fhir";
+    final static String[] ORDER_MESSAGES = new String[]{"ORM^O01", "OMG^O19", "OMI^O23"};
+    final static String[] SPS_SCHEDULED = new String[]{"NW_SC", "NW_IP", "XO_SC"};
 
     enum EventClass {
         QUERY,
@@ -77,6 +106,7 @@ class AuditUtils {
         SCHEDULER_DELETED,
         STORE_WADOR,
         CONN_FAILURE,
+        ASSOCIATION_FAILURE,
         RETRIEVE,
         APPLN_ACTIVITY,
         PATIENT,
@@ -88,14 +118,13 @@ class AuditUtils {
         LDAP_CHANGES,
         QUEUE_EVENT,
         IMPAX,
-        ASSOCIATION_FAILURE,
         QSTAR
     }
     enum EventType {
         QSTAR_VERI(EventClass.QSTAR, AuditMessages.EventID.Export, AuditMessages.EventActionCode.Read,
                 AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.DestinationMedia, null),
         WADO___URI(EventClass.STORE_WADOR, AuditMessages.EventID.DICOMInstancesTransferred, AuditMessages.EventActionCode.Read,
-                AuditMessages.RoleIDCode.Destination, AuditMessages.RoleIDCode.Source, null),
+                AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.Destination, null),
         STORE_CREA(EventClass.STORE_WADOR, AuditMessages.EventID.DICOMInstancesTransferred, AuditMessages.EventActionCode.Create,
                 AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.Destination, null),
         STORE_UPDT(EventClass.STORE_WADOR, AuditMessages.EventID.DICOMInstancesTransferred, AuditMessages.EventActionCode.Update,
@@ -135,6 +164,8 @@ class AuditUtils {
 
         CONN_FAILR(EventClass.CONN_FAILURE, AuditMessages.EventID.SecurityAlert, AuditMessages.EventActionCode.Execute,
                 null, null, AuditMessages.EventTypeCode.NodeAuthentication),
+        ASSOC_FAIL(EventClass.ASSOCIATION_FAILURE, AuditMessages.EventID.SecurityAlert, AuditMessages.EventActionCode.Execute,
+                null, null, AuditMessages.EventTypeCode.AssociationFailure),
 
         PAT_CREATE(EventClass.PATIENT, AuditMessages.EventID.PatientRecord, AuditMessages.EventActionCode.Create,
                 AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.Destination, null),
@@ -147,14 +178,14 @@ class AuditUtils {
         PAT___READ(EventClass.PATIENT, AuditMessages.EventID.PatientRecord, AuditMessages.EventActionCode.Read,
                 AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.Destination, null),
         PAT_UPD_SC(EventClass.PATIENT, AuditMessages.EventID.PatientRecord, AuditMessages.EventActionCode.Update,
-                null, null, null),
+                AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.Destination, null),
         PAT_RD__SC(EventClass.PATIENT, AuditMessages.EventID.PatientRecord, AuditMessages.EventActionCode.Read,
                 null, null, null),
 
         PROC_STD_C(EventClass.PROCEDURE, AuditMessages.EventID.ProcedureRecord, AuditMessages.EventActionCode.Create,
-                null, null, null),
+                AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.Destination, null),
         PROC_STD_U(EventClass.PROCEDURE, AuditMessages.EventID.ProcedureRecord, AuditMessages.EventActionCode.Update,
-                 null, null, null),
+                AuditMessages.RoleIDCode.Source, AuditMessages.RoleIDCode.Destination, null),
         PROC_STD_R(EventClass.PROCEDURE, AuditMessages.EventID.ProcedureRecord, AuditMessages.EventActionCode.Read,
                 null, null, null),
         PROC_STD_D(EventClass.PROCEDURE, AuditMessages.EventID.ProcedureRecord, AuditMessages.EventActionCode.Delete,
@@ -174,9 +205,6 @@ class AuditUtils {
 
         IMPAX_MISM(EventClass.IMPAX, AuditMessages.EventID.SecurityAlert, AuditMessages.EventActionCode.Execute,
                 null, null, null),
-
-        ASSOC_FAIL(EventClass.ASSOCIATION_FAILURE, AuditMessages.EventID.SecurityAlert, AuditMessages.EventActionCode.Execute,
-                null, null, AuditMessages.EventTypeCode.AssociationFailure),
 
         CANCEL_TSK(EventClass.QUEUE_EVENT, AuditMessages.EventID.SecurityAlert, AuditMessages.EventActionCode.Execute,
                 null, null, AuditMessages.EventTypeCode.CancelTask),
@@ -251,50 +279,64 @@ class AuditUtils {
             return rejectionNoteSent.isStudyDeleted() ? RJ_COMPLET : RJ_PARTIAL;
         }
 
-        static EventType forPatRec(PatientMgtContext ctx) {
+        static EventType forPatientRecord(PatientMgtContext ctx) {
             if (!ctx.getPatientVerificationStatus().equals(Patient.VerificationStatus.UNVERIFIED))
-                return forPatVer(ctx);
+                return forPatientRecordVerification(ctx);
 
-            return ctx.getEventActionCode().equals(AuditMessages.EventActionCode.Create)
+            String eventActionCode = ctx.getEventActionCode();
+            HttpServletRequestInfo httpServletRequestInfo = ctx.getHttpServletRequestInfo();
+            switch (eventActionCode) {
+                case "C":
+                    return PAT_CREATE;
+                case "U":
+                    return PAT_UPDATE;
+                case "D":
+                    return httpServletRequestInfo == null ? PAT_DLT_SC : PAT_DELETE;
+                default:
+                    return null;
+            }
+        }
+
+        private static EventType forPatientRecordVerification(PatientMgtContext ctx) {
+            String eventActionCode = ctx.getEventActionCode();
+            HttpServletRequestInfo httpServletRequestInfo = ctx.getHttpServletRequestInfo();
+            return eventActionCode.equals(AuditMessages.EventActionCode.Create)
                     ? PAT_CREATE
-                    : ctx.getEventActionCode().equals(AuditMessages.EventActionCode.Update)
-                        ? PAT_UPDATE
-                        : ctx.getEventActionCode().equals(AuditMessages.EventActionCode.Delete)
-                            ? ctx.getHttpServletRequestInfo() != null ? PAT_DELETE : PAT_DLT_SC
-                            : PAT___READ;
+                    : httpServletRequestInfo == null
+                        ? PAT_UPD_SC : PAT_UPDATE;
         }
 
-        private static EventType forPatVer(PatientMgtContext ctx) {
-            String eac = ctx.getEventActionCode();
-            return ctx.getHttpServletRequestInfo() == null
-                    ? eac.equals(AuditMessages.EventActionCode.Update)
-                        ? PAT_UPD_SC : PAT_RD__SC
-                    : eac.equals(AuditMessages.EventActionCode.Update)
-                        ? PAT_UPDATE
-                        : eac.equals(AuditMessages.EventActionCode.Create)
-                            ? PAT_CREATE
-                            : PAT___READ;
-        }
-
-        static EventType forHL7OutgoingPatRec(String messageType) {
-            return messageType.equals("ADT^A28") || messageType.equals("ORU^R01")
-                    ? PAT_CREATE
-                    : PAT_UPDATE;
-        }
-
-        static EventType forHL7IncomingPatRec(UnparsedHL7Message hl7ResponseMessage) {
-            if (hl7ResponseMessage instanceof ArchiveHL7Message) {
-                ArchiveHL7Message archiveHL7Message = (ArchiveHL7Message) hl7ResponseMessage;
-                return archiveHL7Message.getPatRecEventActionCode().equals(AuditMessages.EventActionCode.Create)
+        static EventType forHL7OutgoingPatientRecord(HL7ConnectionEvent hl7ConnEvent) {
+            String messageType = hl7ConnEvent.getHL7Message().msh().getMessageType();
+            return messageType.equals(CREATE_PATIENT)
+                    || messageType.equals(OBSERVATION_REPORTING)
+                    || messageType.equals(IMAGING_ORDER)
                         ? PAT_CREATE
                         : PAT_UPDATE;
-            }
-            return PAT___READ;
         }
 
-        static EventType forProcedure(String eventActionCode) {
+        static EventType forHL7IncomingPatientRecord(HL7ConnectionEvent hl7ConnEvent) {
+            String messageType = hl7ConnEvent.getHL7Message().msh().getMessageType();
+            if (messageType.startsWith(APPOINTMENTS))
+                return PAT___READ;
+
+            UnparsedHL7Message hl7ResponseMessage = hl7ConnEvent.getHL7ResponseMessage();
+            if (hl7ResponseMessage instanceof ArchiveHL7Message)
+                return ((ArchiveHL7Message) hl7ResponseMessage).getPatRecEventActionCode().equals(AuditMessages.EventActionCode.Create)
+                        ? PAT_CREATE
+                        : PAT_UPDATE;
+
+            //HL7 Exception in HL7 Connection Event != null
+            return PAT_UPDATE;
+        }
+
+        static EventType forProcedure(ProcedureContext ctx) {
+            String eventActionCode = ctx.getEventActionCode();
+            HttpServletRequestInfo httpServletRequestInfo = ctx.getHttpRequest();
             return eventActionCode == null
-                    ? PROC_STD_R
+                    ? httpServletRequestInfo == null
+                        ? null
+                        : PROC_STD_U
                     : eventActionCode.equals(AuditMessages.EventActionCode.Create)
                         ? PROC_STD_C
                         : eventActionCode.equals(AuditMessages.EventActionCode.Update)
@@ -302,45 +344,28 @@ class AuditUtils {
                             : PROC_STD_D;
         }
 
-        static EventType forStudy(String eventActionCode) {
-            return eventActionCode == null ? STUDY_READ : STUDY_UPDT;
+        static EventType forHL7IncomingOrderMsg(HL7ConnectionEvent hl7ConnEvent) {
+            UnparsedHL7Message hl7ResponseMessage = hl7ConnEvent.getHL7ResponseMessage();
+            if (hl7ResponseMessage instanceof ArchiveHL7Message)
+                return ((ArchiveHL7Message) hl7ResponseMessage).getProcRecEventActionCode().equals(AuditMessages.EventActionCode.Create)
+                        ? PROC_STD_C
+                        : PROC_STD_U;
+
+            //HL7 Exception in HL7 Connection Event != null
+            return PROC_STD_U;
         }
 
-        static EventType forHL7IncomingOrderMsg(UnparsedHL7Message hl7ResponseMessage) {
-            if (hl7ResponseMessage instanceof ArchiveHL7Message) {
-                ArchiveHL7Message archiveHL7Message = (ArchiveHL7Message) hl7ResponseMessage;
-                String procRecEventActionCode = archiveHL7Message.getProcRecEventActionCode();
-                return procRecEventActionCode == null
-                        ? PROC_STD_R
-                        : procRecEventActionCode.equals(AuditMessages.EventActionCode.Create)
-                            ? PROC_STD_C
-                            : PROC_STD_U;
-            }
-            return PROC_STD_R;
+        static EventType forHL7OutgoingOrderMsg(HL7Message hl7Message) {
+            HL7Segment orc = hl7Message.getSegment(ORC_SEGMENT);
+            String orderCtrlStatus = orc.getField(ORC_SEGMENT_ORDER_CONTROL, null)
+                                        + "_"
+                                        + orc.getField(ORC_SEGMENT_ORDER_STATUS, null);
+            return Arrays.asList(SPS_SCHEDULED).contains(orderCtrlStatus)
+                    ? PROC_STD_C
+                    : PROC_STD_U;
         }
 
-        static EventType forHL7OutgoingOrderMsg(String orderCtrlStatus,
-                Collection<HL7OrderSPSStatus> hl7OrderSPSStatuses) {
-            EventType eventType = PROC_STD_R;
-            for (HL7OrderSPSStatus hl7OrderSPSStatus : hl7OrderSPSStatuses) {
-                String[] orderControlStatusCodes = hl7OrderSPSStatus.getOrderControlStatusCodes();
-                if (hl7OrderSPSStatus.getSPSStatus() == SPSStatus.SCHEDULED) {
-                    if (Arrays.asList(orderControlStatusCodes).contains(orderCtrlStatus)) {
-                        eventType = PROC_STD_C;
-                        break;
-                    }
-                } else {
-                    if (Arrays.asList(orderControlStatusCodes).contains(orderCtrlStatus)
-                            || orderCtrlStatus.equals("SC_CM")) {//SC_CM = archive sends proc update msg mpps or study receive trigger
-                        eventType = PROC_STD_U;
-                        break;
-                    }
-                }
-            }
-            return eventType;
-        }
-
-        static EventType forQueueEvent(TaskOperation operation) {
+        static EventType forTaskEvent(TaskOperation operation) {
             return operation == TaskOperation.CancelTasks
                     ? CANCEL_TSK
                     : operation == TaskOperation.RescheduleTasks
@@ -357,16 +382,6 @@ class AuditUtils {
                     + ", EventTypeCode = " + eventTypeCode
                     + "]";
         }
-    }
-
-    static String findScpHost(String findScp, IApplicationEntityCache aeCache) {
-        String findScpHost = null;
-        try {
-            findScpHost = aeCache.findApplicationEntity(findScp).getConnections().get(0).getHostname();
-        } catch (ConfigurationException e) {
-            LOG.info("Exception caught on getting hostname for C-FINDSCP {} : {}", findScp, e.getMessage());
-        }
-        return findScpHost;
     }
 
     static AuditMessages.EventTypeCode errorEventTypeCode(String errorCode) {
@@ -387,6 +402,10 @@ class AuditUtils {
                 return AuditMessages.EventTypeCode.x0212;
             case "A700":
                 return AuditMessages.EventTypeCode.A700;
+            case "A701":
+                return AuditMessages.EventTypeCode.A701;
+            case "A702":
+                return AuditMessages.EventTypeCode.A702;
             case "A770":
                 return AuditMessages.EventTypeCode.A770;
             case "A771":
@@ -407,8 +426,12 @@ class AuditUtils {
                 return AuditMessages.EventTypeCode.A778;
             case "A779":
                 return AuditMessages.EventTypeCode.A779;
+            case "A801":
+                return AuditMessages.EventTypeCode.A801;
             case "A900":
                 return AuditMessages.EventTypeCode.A900;
+            case "B000":
+                return AuditMessages.EventTypeCode.B000;
             case "C409":
                 return AuditMessages.EventTypeCode.C409;
             default:

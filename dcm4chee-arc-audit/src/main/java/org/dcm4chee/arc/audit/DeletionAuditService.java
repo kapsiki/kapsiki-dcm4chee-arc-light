@@ -104,8 +104,14 @@ class DeletionAuditService extends AuditService {
         study.setParticipantObjectIDTypeCode(AuditMessages.ParticipantObjectIDTypeCode.StudyInstanceUID);
         study.setParticipantObjectTypeCode(AuditMessages.ParticipantObjectTypeCode.SystemObject);
         study.setParticipantObjectTypeCodeRole(AuditMessages.ParticipantObjectTypeCodeRole.Report);
-        study.getParticipantObjectDetail()
-                .add(AuditMessages.createParticipantObjectDetail("StudyDate", auditInfo.getField(AuditInfo.STUDY_DATE)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("StudyDate", auditInfo.getField(AuditInfo.STUDY_DATE)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("StudyDescription", auditInfo.getField(AuditInfo.STUDY_DESC)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("SeriesDescription", auditInfo.getField(AuditInfo.SERIES_DESC)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("Modality", auditInfo.getField(AuditInfo.MODALITY)));
         InstanceInfo instanceInfo = instanceInfo(auditInfo, reader);
         boolean showSOPIUIDs = auditInfo.getField(AuditInfo.OUTCOME) != null || auditLogger.isIncludeInstanceUID();
         study.setParticipantObjectDescription(studyParticipantObjDesc(instanceInfo, showSOPIUIDs));
@@ -123,32 +129,34 @@ class DeletionAuditService extends AuditService {
     }
 
     private static ParticipantObjectDescription studyParticipantObjDesc(InstanceInfo instanceInfo, boolean showSOPIUIDs) {
-        Accession accession = new Accession();
-        accession.setNumber(instanceInfo.getAccessionNo());
-        List<SOPClass> sopClasses = instanceInfo.getSopClassMap()
-                                                .entrySet()
-                                                .stream()
-                                                .map(entry ->
-                                                        AuditMessages.createSOPClass(
-                                                                showSOPIUIDs ? entry.getValue() : null,
-                                                                entry.getKey(),
-                                                                entry.getValue().size()))
-                                                .collect(Collectors.toList());
-
         ParticipantObjectDescription studyParticipantObjDesc = new ParticipantObjectDescription();
-        studyParticipantObjDesc.getAccession().add(accession);
-        studyParticipantObjDesc.getSOPClass().addAll(sopClasses);
+        String accessionNo = instanceInfo.getAccessionNo();
+        if (accessionNo != null)
+            studyParticipantObjDesc.getAccession().add(AuditMessages.createAccession(accessionNo));
+        studyParticipantObjDesc.getSOPClass().addAll(sopClasses(instanceInfo, showSOPIUIDs));
         return studyParticipantObjDesc;
+    }
+
+    private static List<SOPClass> sopClasses(InstanceInfo instanceInfo, boolean showSOPIUIDs) {
+        return instanceInfo.getSopClassMap()
+                .entrySet()
+                .stream()
+                .map(entry ->
+                        AuditMessages.createSOPClass(
+                                showSOPIUIDs ? entry.getValue() : null,
+                                entry.getKey(),
+                                entry.getValue().size()))
+                .collect(Collectors.toList());
     }
 
     private static ActiveParticipant archive(
             String archiveUserID, AuditMessages.UserIDTypeCode archiveUserIDTypeCode, AuditLogger auditLogger) {
         ActiveParticipant archive = new ActiveParticipant();
         archive.setUserID(archiveUserID);
-        archive.setAlternativeUserID(AuditLogger.processID());
-        archive.setUserIsRequestor(archiveUserIDTypeCode == AuditMessages.UserIDTypeCode.DeviceName);
         archive.setUserIDTypeCode(archiveUserIDTypeCode);
         archive.setUserTypeCode(AuditMessages.UserTypeCode.Application);
+        archive.setAlternativeUserID(AuditLogger.processID());
+        archive.setUserIsRequestor(archiveUserIDTypeCode == AuditMessages.UserIDTypeCode.DeviceName);
 
         String auditLoggerHostName = auditLogger.getConnections().get(0).getHostname();
         archive.setNetworkAccessPointID(auditLoggerHostName);
@@ -164,10 +172,13 @@ class DeletionAuditService extends AuditService {
         String requestorID = auditInfo.getField(AuditInfo.CALLING_USERID);
         requestor.setUserID(requestorID);
         requestor.setUserIsRequestor(true);
-        requestor.setUserIDTypeCode(AuditMessages.isIP(requestorID)
-                ? AuditMessages.UserIDTypeCode.NodeID
-                : AuditMessages.UserIDTypeCode.PersonID);
-        requestor.setUserTypeCode(AuditMessages.UserTypeCode.Person);
+        boolean requestorIsIP = AuditMessages.isIP(requestorID);
+        requestor.setUserIDTypeCode(requestorIsIP
+                    ? AuditMessages.UserIDTypeCode.NodeID
+                    : AuditMessages.UserIDTypeCode.PersonID);
+        requestor.setUserTypeCode(requestorIsIP
+                    ? AuditMessages.UserTypeCode.Application
+                    : AuditMessages.UserTypeCode.Person);
 
         String requestorHost = auditInfo.getField(AuditInfo.CALLING_HOST);
         requestor.setNetworkAccessPointID(requestorHost);

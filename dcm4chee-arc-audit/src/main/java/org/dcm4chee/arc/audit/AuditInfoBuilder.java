@@ -42,13 +42,13 @@ package org.dcm4chee.arc.audit;
 
 import org.dcm4che3.data.*;
 import org.dcm4che3.net.service.DicomServiceException;
-import org.dcm4chee.arc.ConnectionEvent;
 import org.dcm4chee.arc.conf.ArchiveDeviceExtension;
 import org.dcm4chee.arc.conf.ShowPatientInfo;
 import org.dcm4chee.arc.entity.Patient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -76,7 +76,7 @@ class AuditInfoBuilder {
     final String queryString;
     final String destUserID;
     final String destNapID;
-    final String moveUserID;
+    final String cMoveOriginator;
     final String findSCP;
     final String warning;
     final boolean failedIUIDShow;
@@ -87,11 +87,11 @@ class AuditInfoBuilder {
     final String outgoingHL7Receiver;
     final String filters;
     final int count;
-    final String queueMsg;
+    final String task;
     final String taskPOID;
     final String errorCode;
     final String patMismatchCode;
-    final ConnectionEvent.Type connType;
+    final String serviceEventType;
     final Patient.VerificationStatus patVerificationStatus;
     final String pdqServiceURI;
     final String impaxEndpoint;
@@ -100,6 +100,11 @@ class AuditInfoBuilder {
     final String queueName;
     final String status;
     final String fhirWebAppName;
+    final String archiveUserID;
+    final String qrLevel;
+    final String studyDesc;
+    final String seriesDesc;
+    final String modality;
 
     static class Builder {
         private String callingHost;
@@ -119,7 +124,7 @@ class AuditInfoBuilder {
         private String queryString;
         private String destUserID;
         private String destNapID;
-        private String moveUserID;
+        private String cMoveOriginator;
         private String findSCP;
         private String warning;
         private boolean failedIUIDShow;
@@ -130,11 +135,11 @@ class AuditInfoBuilder {
         private String outgoingHL7Receiver;
         private String filters;
         private int count;
-        private String queueMsg;
+        private String task;
         private String taskPOID;
         private String errorCode;
         private String patMismatchCode;
-        private ConnectionEvent.Type connType;
+        private String serviceEventType;
         private Patient.VerificationStatus patVerificationStatus;
         private String pdqServiceURI;
         private String impaxEndpoint;
@@ -143,6 +148,11 @@ class AuditInfoBuilder {
         private String queueName;
         private String status;
         private String fhirWebAppName;
+        private String archiveUserID;
+        private String qrLevel;
+        private String studyDesc;
+        private String seriesDesc;
+        private String modality;
 
         Builder callingHost(String val) {
             callingHost = val;
@@ -168,7 +178,9 @@ class AuditInfoBuilder {
             pID = arcDev.auditUnknownPatientID();
             if (attr != null) {
                 pName = toPatName(attr.getString(Tag.PatientName), arcDev);
-                pID = toPID(IDWithIssuer.pidsOf(attr).stream()
+                Set<IDWithIssuer> idWithIssuers = IDWithIssuer.pidsOf(attr);
+                if (!idWithIssuers.isEmpty())
+                    pID = toPID(idWithIssuers.stream()
                                 .map(IDWithIssuer::toString)
                                 .collect(Collectors.joining("~")),
                             arcDev);
@@ -193,6 +205,18 @@ class AuditInfoBuilder {
                 studyUID = attrs.getString(Tag.StudyInstanceUID);
                 accNum = attrs.getString(Tag.AccessionNumber);
                 studyDate = attrs.getString(Tag.StudyDate);
+            }
+            return this;
+        }
+        Builder addAttrs(Attributes attrs, ArchiveDeviceExtension arcDev) {
+            studyUID = arcDev.auditUnknownStudyInstanceUID();
+            if (attrs != null) {
+                studyUID = attrs.getString(Tag.StudyInstanceUID);
+                accNum = attrs.getString(Tag.AccessionNumber);
+                studyDate = attrs.getString(Tag.StudyDate);
+                studyDesc = attrs.getString(Tag.StudyDescription);
+                seriesDesc = attrs.getString(Tag.SeriesDescription);
+                modality = attrs.getString(Tag.Modality);
             }
             return this;
         }
@@ -236,8 +260,8 @@ class AuditInfoBuilder {
             destNapID = val;
             return this;
         }
-        Builder moveUserID(String val) {
-            moveUserID = val;
+        Builder cMoveOriginator(String val) {
+            cMoveOriginator = val;
             return this;
         }
         Builder findSCP(String val) {
@@ -280,8 +304,8 @@ class AuditInfoBuilder {
             count = val;
             return this;
         }
-        Builder queueMsg(String val) {
-            queueMsg = val;
+        Builder task(String val) {
+            task = val;
             return this;
         }
         Builder taskPOID(String val) {
@@ -294,12 +318,16 @@ class AuditInfoBuilder {
                             : "0";
             return this;
         }
+        Builder errorCode(int status) {
+            errorCode = status == 0 ? "0" : errorCodeAsString(status);
+            return this;
+        }
         Builder patMismatchCode(String val) {
             patMismatchCode = val;
             return this;
         }
-        Builder connType(ConnectionEvent.Type val) {
-            connType = val;
+        Builder serviceEventType(String val) {
+            serviceEventType = val;
             return this;
         }
         Builder patVerificationStatus(Patient.VerificationStatus val) {
@@ -334,6 +362,14 @@ class AuditInfoBuilder {
             fhirWebAppName = val;
             return this;
         }
+        Builder archiveUserID(String val) {
+            archiveUserID = val;
+            return this;
+        }
+        Builder qrLevel(String val) {
+            qrLevel = val;
+            return this;
+        }
         AuditInfoBuilder build() {
             return new AuditInfoBuilder(this);
         }
@@ -361,7 +397,7 @@ class AuditInfoBuilder {
         queryString = builder.queryString;
         destUserID = builder.destUserID;
         destNapID = builder.destNapID;
-        moveUserID = builder.moveUserID;
+        cMoveOriginator = builder.cMoveOriginator;
         findSCP = builder.findSCP;
         warning = builder.warning;
         failedIUIDShow = builder.failedIUIDShow;
@@ -372,11 +408,11 @@ class AuditInfoBuilder {
         outgoingHL7Receiver = builder.outgoingHL7Receiver;
         filters = builder.filters;
         count = builder.count;
-        queueMsg = builder.queueMsg;
+        task = builder.task;
         taskPOID = builder.taskPOID;
         errorCode = builder.errorCode;
         patMismatchCode = builder.patMismatchCode;
-        connType = builder.connType;
+        serviceEventType = builder.serviceEventType;
         patVerificationStatus = builder.patVerificationStatus;
         pdqServiceURI = builder.pdqServiceURI;
         impaxEndpoint = builder.impaxEndpoint;
@@ -385,6 +421,11 @@ class AuditInfoBuilder {
         queueName = builder.queueName;
         status = builder.status;
         fhirWebAppName = builder.fhirWebAppName;
+        archiveUserID = builder.archiveUserID;
+        qrLevel = builder.qrLevel;
+        studyDesc = builder.studyDesc;
+        modality = builder.modality;
+        seriesDesc = builder.seriesDesc;
     }
 
     private static String idWithIssuer(ArchiveDeviceExtension arcDev, String cx) {

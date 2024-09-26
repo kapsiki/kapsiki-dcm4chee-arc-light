@@ -41,7 +41,10 @@
 package org.dcm4chee.arc.audit;
 
 import org.dcm4che3.audit.*;
+import org.dcm4che3.data.Code;
 import org.dcm4che3.net.audit.AuditLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -53,6 +56,7 @@ import java.util.stream.Collectors;
  * @since Nov 2023
  */
 class StoreAuditService extends AuditService {
+    private final static Logger LOG = LoggerFactory.getLogger(StoreAuditService.class);
 
     static void audit(AuditLogger auditLogger, Path path, AuditUtils.EventType eventType) {
         SpoolFileReader reader = new SpoolFileReader(path);
@@ -72,7 +76,7 @@ class StoreAuditService extends AuditService {
         EventIdentification eventIdentification = error
                                                     ? getEventIdentificationForError(eventType, instanceInfo)
                                                     : getEventIdentification(eventType);
-        eventIdentification.setEventDateTime(AuditService.getEventTime(path, auditLogger));
+        eventIdentification.setEventDateTime(getEventTime(path, auditLogger));
 
         ParticipantObjectIdentification study = study(auditInfo, instanceInfo, auditLogger.isIncludeInstanceUID());
         ParticipantObjectIdentification patient = patient(auditInfo);
@@ -179,8 +183,14 @@ class StoreAuditService extends AuditService {
         study.setParticipantObjectIDTypeCode(AuditMessages.ParticipantObjectIDTypeCode.StudyInstanceUID);
         study.setParticipantObjectTypeCode(AuditMessages.ParticipantObjectTypeCode.SystemObject);
         study.setParticipantObjectTypeCodeRole(AuditMessages.ParticipantObjectTypeCodeRole.Report);
-        study.getParticipantObjectDetail()
-                .add(AuditMessages.createParticipantObjectDetail("StudyDate", auditInfo.getField(AuditInfo.STUDY_DATE)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("StudyDate", auditInfo.getField(AuditInfo.STUDY_DATE)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("StudyDescription", auditInfo.getField(AuditInfo.STUDY_DESC)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("SeriesDescription", auditInfo.getField(AuditInfo.SERIES_DESC)));
+        study.getParticipantObjectDetail().add(
+                AuditMessages.createParticipantObjectDetail("Modality", auditInfo.getField(AuditInfo.MODALITY)));
         study.setParticipantObjectDescription(studyParticipantObjDesc(instanceInfo, showSOPIUIDs));
         study.setParticipantObjectDataLifeCycle(AuditMessages.ParticipantObjectDataLifeCycle.OriginationCreation);
         return study;
@@ -215,22 +225,13 @@ class StoreAuditService extends AuditService {
 
     private static ParticipantObjectDescription studyParticipantObjDesc(InstanceInfo instanceInfo, boolean showSOPIUIDs) {
         ParticipantObjectDescription studyParticipantObjDesc = new ParticipantObjectDescription();
-        studyParticipantObjDesc.getAccession().add(accession(instanceInfo));
+        String accessionNo = instanceInfo.getAccessionNo();
+        if (accessionNo != null)
+            studyParticipantObjDesc.getAccession().add(AuditMessages.createAccession(accessionNo));
         studyParticipantObjDesc.getSOPClass().addAll(sopClasses(instanceInfo, showSOPIUIDs));
-        instanceInfo.getMpps().forEach(mppsUID -> studyParticipantObjDesc.getMPPS().add(mpps(mppsUID)));
+        instanceInfo.getMpps().forEach(
+                mppsUID -> studyParticipantObjDesc.getMPPS().add(AuditMessages.createMPPS(mppsUID)));
         return studyParticipantObjDesc;
-    }
-
-    private static Accession accession(InstanceInfo instanceInfo) {
-        Accession accession = new Accession();
-        accession.setNumber(instanceInfo.getAccessionNo());
-        return accession;
-    }
-
-    private static MPPS mpps(String mppsUID) {
-        MPPS mpps = new MPPS();
-        mpps.setUID(mppsUID);
-        return mpps;
     }
 
     private static List<SOPClass> sopClasses(InstanceInfo instanceInfo, boolean showSOPIUIDs) {
@@ -253,5 +254,61 @@ class StoreAuditService extends AuditService {
         patient.setParticipantObjectTypeCodeRole(AuditMessages.ParticipantObjectTypeCodeRole.Patient);
         patient.setParticipantObjectName(auditInfo.getField(AuditInfo.P_NAME));
         return patient;
+    }
+
+    static void auditImpaxReportPatientMismatch(AuditLogger auditLogger, Path path, AuditUtils.EventType eventType) {
+        SpoolFileReader reader = new SpoolFileReader(path);
+        AuditInfo auditInfo = new AuditInfo(reader.getMainInfo());
+        EventIdentification eventIdentification = getEventIdentificationPatientMismatch(auditInfo, eventType);
+        eventIdentification.setEventDateTime(getEventTime(path, auditLogger));
+        List<ActiveParticipant> activeParticipants = new ArrayList<>();
+        activeParticipants.add(archive(auditInfo, eventType, auditLogger));
+        activeParticipants.add(impax(auditInfo));
+        if (auditInfo.getField(AuditInfo.CALLING_HOST) != null)
+            activeParticipants.add(requestor(auditInfo, eventType));
+        InstanceInfo instanceInfo = instanceInfo(auditInfo, reader);
+        ParticipantObjectIdentification study = study(auditInfo, instanceInfo, auditLogger.isIncludeInstanceUID());
+        ParticipantObjectIdentification patient = patient(auditInfo);
+        emitAuditMessage(auditLogger, eventIdentification, activeParticipants, study, patient);
+    }
+
+    private static EventIdentification getEventIdentificationPatientMismatch(
+            AuditInfo auditInfo, AuditUtils.EventType eventType) {
+        EventIdentification ei = new EventIdentification();
+        ei.setEventID(eventType.eventID);
+        ei.setEventActionCode(eventType.eventActionCode);
+        ei.setEventOutcomeIndicator(AuditMessages.EventOutcomeIndicator.MinorFailure);
+        ei.getEventTypeCode().add(patMismatchEventTypeCode(auditInfo));
+        return ei;
+    }
+
+    private static AuditMessages.EventTypeCode patMismatchEventTypeCode(AuditInfo auditInfo) {
+        String patMismatchCode = auditInfo.getField(AuditInfo.PAT_MISMATCH_CODE);
+        try {
+            Code code = new Code(patMismatchCode);
+            return new AuditMessages.EventTypeCode(
+                    code.getCodeValue(),
+                    code.getCodingSchemeDesignator(),
+                    code.getCodeMeaning());
+        } catch (Exception e) {
+            LOG.info("Invalid patient mismatch code: {}", patMismatchCode);
+        }
+        return null;
+    }
+
+    private static ActiveParticipant impax(AuditInfo auditInfo){
+        ActiveParticipant impax = new ActiveParticipant();
+        String impaxEndpoint = auditInfo.getField(AuditInfo.IMPAX_ENDPOINT);
+        String impaxEndpointRelative = impaxEndpoint.substring(impaxEndpoint.indexOf("//") + 2);
+        String impaxEndpointHost = impaxEndpointRelative.substring(0, impaxEndpointRelative.indexOf('/'));
+        impax.setUserID(impaxEndpoint);
+        impax.setUserIDTypeCode(AuditMessages.UserIDTypeCode.URI);
+        impax.setUserTypeCode(AuditMessages.UserTypeCode.Application);
+        impax.setNetworkAccessPointID(impaxEndpointHost);
+        impax.setNetworkAccessPointTypeCode(
+                AuditMessages.isIP(impaxEndpointHost)
+                    ? AuditMessages.NetworkAccessPointTypeCode.IPAddress
+                    : AuditMessages.NetworkAccessPointTypeCode.MachineName);
+        return impax;
     }
 }

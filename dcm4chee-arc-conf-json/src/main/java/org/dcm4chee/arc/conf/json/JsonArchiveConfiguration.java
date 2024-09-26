@@ -105,6 +105,8 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
         writer.writeNotNullOrDef("dcmDeleteUPSCompletedDelay", arcDev.getDeleteUPSCompletedDelay(), null);
         writer.writeNotNullOrDef("dcmDeleteUPSCanceledDelay", arcDev.getDeleteUPSCanceledDelay(), null);
         writer.writeNotNullOrDef("dcmOverwritePolicy", arcDev.getOverwritePolicy(), OverwritePolicy.NEVER);
+        writer.writeNotNullOrDef("dcmRelationalMismatchPolicy",
+                arcDev.getRelationalMismatchPolicy(), RelationalMismatchPolicy.IGNORE);
         writer.writeNotDef("dcmRecordAttributeModification", arcDev.isRecordAttributeModification(), true);
         writer.writeNotDef("dcmIdentifyPatientByAllAttributes", arcDev.isIdentifyPatientByAllAttributes(), false);
         writer.writeNotNullOrDef("dcmBulkDataSpoolDirectory",
@@ -180,6 +182,7 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
         writer.writeNotDef("dcmDeletePatientOnDeleteLastStudy", arcDev.isDeletePatientOnDeleteLastStudy(), false);
         writer.writeNotNullOrDef("dcmDeleteRejectedPollingInterval", arcDev.getDeleteRejectedPollingInterval(), null);
         writer.writeNotDef("dcmDeleteRejectedFetchSize", arcDev.getDeleteRejectedFetchSize(), 100);
+        writer.writeNotDef("dcmDBReadOnly", arcDev.isDBReadOnly(), false);
         writer.writeNotNullOrDef("dcmMaxAccessTimeStaleness", arcDev.getMaxAccessTimeStaleness(), null);
         writer.writeNotNullOrDef("dcmAECacheStaleTimeout", arcDev.getAECacheStaleTimeout(), null);
         writer.writeNotNullOrDef("dcmLeadingCFindSCPQueryCacheStaleTimeout",
@@ -440,6 +443,8 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
                 arcDev.getKeyValueRetentionPollingInterval(), null);
         writer.writeNotDef("dcmKeyValueRetentionFetchSize", arcDev.getKeyValueRetentionFetchSize(), 100);
         writer.writeNotNullOrDef("dcmKeyValueRetentionPeriod", arcDev.getKeyValueRetentionPeriod(), null);
+        writer.writeNotNullOrDef("dcmQStarVerificationStorageID",
+                arcDev.getQStarVerificationStorageID(), null);
         writer.writeNotNullOrDef("dcmQStarVerificationPollingInterval",
                 arcDev.getQStarVerificationPollingInterval(), null);
         writer.writeNotDef("dcmQStarVerificationFetchSize", arcDev.getQStarVerificationFetchSize(), 100);
@@ -562,6 +567,8 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
             writer.writeNotNullOrDef("dcmExternalRetrieveInstanceAvailability",
                     st.getExternalRetrieveInstanceAvailability(), null);
             writer.writeNotEmpty("dcmExportStorageID", st.getExportStorageID());
+            writer.writeNotDef("dcmSingleExportStorageByStudy",
+                    st.isSingleExportStorageByStudy(), false);
             writer.writeNotNullOrDef("dcmRetrieveCacheStorageID", st.getRetrieveCacheStorageID(), null);
             writer.writeNotDef("dcmNoRetrieveCacheOnPurgedInstanceRecords",
                     st.isNoRetrieveCacheOnPurgedInstanceRecords(), false);
@@ -779,6 +786,7 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
             writer.writeNotNullOrDef("cn", acr.getCommonName(), null);
             writer.writeNotNullOrDef("dcmStoreAccessControlID", acr.getStoreAccessControlID(), null);
             writer.writeNotDef("dcmRulePriority", acr.getPriority(), 0);
+            writer.writeNotDef("dcmAccessControlSeriesIndividually", acr.isAccessControlSeriesIndividually(), false);
             writer.writeNotEmpty("dcmProperty", acr.getConditions().getMap());
             writer.writeEnd();
         }
@@ -1250,6 +1258,7 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
         writer.writeNotNullOrDef("dcmStoreAccessControlID", arcAE.getStoreAccessControlID(), null);
         writer.writeNotEmpty("dcmAccessControlID", arcAE.getAccessControlIDs());
         writer.writeNotNullOrDef("dcmOverwritePolicy", arcAE.getOverwritePolicy(), null);
+        writer.writeNotNullOrDef("dcmRelationalMismatchPolicy", arcAE.getRelationalMismatchPolicy(), null);
         writer.writeNotNull("dcmRecordAttributeModification", arcAE.getRecordAttributeModification());
         writer.writeNotNullOrDef("dcmQueryRetrieveViewID", arcAE.getQueryRetrieveViewID(), null);
         writer.writeNotNullOrDef("dcmBulkDataSpoolDirectory", arcAE.getBulkDataSpoolDirectory(), null);
@@ -1460,6 +1469,9 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
                 case "dcmOverwritePolicy":
                     arcDev.setOverwritePolicy(OverwritePolicy.valueOf(reader.stringValue()));
                     break;
+                case "dcmRelationalMismatchPolicy":
+                    arcDev.setRelationalMismatchPolicy(RelationalMismatchPolicy.valueOf(reader.stringValue()));
+                    break;
                 case "dcmRecordAttributeModification":
                     arcDev.setRecordAttributeModification(reader.booleanValue());
                     break;
@@ -1639,6 +1651,9 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
                     break;
                 case "dcmDeleteRejectedFetchSize":
                     arcDev.setDeleteRejectedFetchSize(reader.intValue());
+                    break;
+                case "dcmDBReadOnly":
+                    arcDev.setDBReadOnly(reader.booleanValue());
                     break;
                 case "dcmMaxAccessTimeStaleness":
                     arcDev.setMaxAccessTimeStaleness(Duration.valueOf(reader.stringValue()));
@@ -2192,6 +2207,9 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
                 case "dcmKeyValueRetentionPeriod":
                     arcDev.setKeyValueRetentionPeriod(Duration.valueOf(reader.stringValue()));
                     break;
+                case "dcmQStarVerificationStorageID":
+                    arcDev.setQStarVerificationStorageID(reader.stringValue());
+                    break;
                 case "dcmQStarVerificationPollingInterval":
                     arcDev.setQStarVerificationPollingInterval(Duration.valueOf(reader.stringValue()));
                     break;
@@ -2479,6 +2497,9 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
                         break;
                     case "dcmExportStorageID":
                         st.setExportStorageID(reader.stringArray());
+                        break;
+                    case "dcmSingleExportStorageByStudy":
+                        st.setSingleExportStorageByStudy(reader.booleanValue());
                         break;
                     case "dcmRetrieveCacheStorageID":
                         st.setRetrieveCacheStorageID(reader.stringValue());
@@ -2999,6 +3020,9 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
                         break;
                     case "dcmProperty":
                         acr.setConditions(new Conditions(reader.stringArray()));
+                        break;
+                    case "dcmAccessControlSeriesIndividually":
+                        acr.setAccessControlSeriesIndividually(reader.booleanValue());
                         break;
                     default:
                         reader.skipUnknownProperty();
@@ -4059,6 +4083,9 @@ public class JsonArchiveConfiguration extends JsonConfigurationExtension {
                     break;
                 case "dcmOverwritePolicy":
                     arcAE.setOverwritePolicy(OverwritePolicy.valueOf(reader.stringValue()));
+                    break;
+                case "dcmRelationalMismatchPolicy":
+                    arcAE.setRelationalMismatchPolicy(RelationalMismatchPolicy.valueOf(reader.stringValue()));
                     break;
                 case "dcmRecordAttributeModification":
                     arcAE.setRecordAttributeModification(reader.booleanValue());

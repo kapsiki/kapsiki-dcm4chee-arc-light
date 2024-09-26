@@ -103,6 +103,7 @@ public class ArchiveDeviceExtension extends DeviceExtension {
     private volatile Duration taskPollingInterval;
     private volatile int taskFetchSize = 100;
     private volatile OverwritePolicy overwritePolicy = OverwritePolicy.NEVER;
+    private volatile RelationalMismatchPolicy relationalMismatchPolicy = RelationalMismatchPolicy.IGNORE;
     private volatile boolean recordAttributeModification = true;
     private volatile ShowPatientInfo showPatientInfoInSystemLog = ShowPatientInfo.PLAIN_TEXT;
     private volatile ShowPatientInfo showPatientInfoInAuditLog = ShowPatientInfo.PLAIN_TEXT;
@@ -167,6 +168,7 @@ public class ArchiveDeviceExtension extends DeviceExtension {
     private volatile boolean deletePatientOnDeleteLastStudy = false;
     private volatile Duration failedToDeletePollingInterval;
     private volatile int failedToDeleteFetchSize = 100;
+    private volatile boolean dbReadOnly;
     private volatile Duration maxAccessTimeStaleness;
     private volatile Duration aeCacheStaleTimeout;
     private volatile Duration leadingCFindSCPQueryCacheStaleTimeout;
@@ -297,6 +299,7 @@ public class ArchiveDeviceExtension extends DeviceExtension {
     private volatile Duration patientVerificationRetryInterval;
     private volatile int patientVerificationMaxRetries;
     private volatile boolean patientVerificationAdjustIssuerOfPatientID;
+    private volatile String qStarVerificationStorageID;
     private volatile Duration qStarVerificationPollingInterval;
     private volatile int qStarVerificationFetchSize = 100;
     private volatile Duration qStarVerificationDelay;
@@ -466,6 +469,14 @@ public class ArchiveDeviceExtension extends DeviceExtension {
 
     public void setOverwritePolicy(OverwritePolicy overwritePolicy) {
         this.overwritePolicy = overwritePolicy;
+    }
+
+    public RelationalMismatchPolicy getRelationalMismatchPolicy() {
+        return relationalMismatchPolicy;
+    }
+
+    public void setRelationalMismatchPolicy(RelationalMismatchPolicy relationalMismatchPolicy) {
+        this.relationalMismatchPolicy = relationalMismatchPolicy;
     }
 
     public boolean isRecordAttributeModification() {
@@ -1190,6 +1201,14 @@ public class ArchiveDeviceExtension extends DeviceExtension {
 
     public void setFailedToDeleteFetchSize(int failedToDeleteFetchSize) {
         this.failedToDeleteFetchSize = failedToDeleteFetchSize;
+    }
+
+    public boolean isDBReadOnly() {
+        return dbReadOnly;
+    }
+
+    public void setDBReadOnly(boolean dbReadOnly) {
+        this.dbReadOnly = dbReadOnly;
     }
 
     public Duration getMaxAccessTimeStaleness() {
@@ -2966,6 +2985,14 @@ public class ArchiveDeviceExtension extends DeviceExtension {
         this.patientVerificationMaxStaleness = patientVerificationMaxStaleness;
     }
 
+    public String getQStarVerificationStorageID() {
+        return qStarVerificationStorageID;
+    }
+
+    public void setQStarVerificationStorageID(String qStarVerificationStorageID) {
+        this.qStarVerificationStorageID = qStarVerificationStorageID;
+    }
+
     public Duration getQStarVerificationPollingInterval() {
         return qStarVerificationPollingInterval;
     }
@@ -3586,6 +3613,7 @@ public class ArchiveDeviceExtension extends DeviceExtension {
         taskPollingInterval = arcdev.taskPollingInterval;
         taskFetchSize = arcdev.taskFetchSize;
         overwritePolicy = arcdev.overwritePolicy;
+        relationalMismatchPolicy = arcdev.relationalMismatchPolicy;
         recordAttributeModification = arcdev.recordAttributeModification;
         showPatientInfoInSystemLog = arcdev.showPatientInfoInSystemLog;
         showPatientInfoInAuditLog = arcdev.showPatientInfoInAuditLog;
@@ -3656,6 +3684,7 @@ public class ArchiveDeviceExtension extends DeviceExtension {
         deletePatientOnDeleteLastStudy = arcdev.deletePatientOnDeleteLastStudy;
         failedToDeletePollingInterval = arcdev.failedToDeletePollingInterval;
         failedToDeleteFetchSize = arcdev.failedToDeleteFetchSize;
+        dbReadOnly = arcdev.dbReadOnly;
         maxAccessTimeStaleness = arcdev.maxAccessTimeStaleness;
         aeCacheStaleTimeout = arcdev.aeCacheStaleTimeout;
         leadingCFindSCPQueryCacheStaleTimeout = arcdev.leadingCFindSCPQueryCacheStaleTimeout;
@@ -3775,6 +3804,7 @@ public class ArchiveDeviceExtension extends DeviceExtension {
         patientVerificationPeriodOnNotFound = arcdev.patientVerificationPeriodOnNotFound;
         patientVerificationMaxRetries = arcdev.patientVerificationMaxRetries;
         patientVerificationAdjustIssuerOfPatientID = arcdev.patientVerificationAdjustIssuerOfPatientID;
+        qStarVerificationStorageID = arcdev.qStarVerificationStorageID;
         qStarVerificationPollingInterval = arcdev.qStarVerificationPollingInterval;
         qStarVerificationFetchSize = arcdev.qStarVerificationFetchSize;
         qStarVerificationDelay = arcdev.qStarVerificationDelay;

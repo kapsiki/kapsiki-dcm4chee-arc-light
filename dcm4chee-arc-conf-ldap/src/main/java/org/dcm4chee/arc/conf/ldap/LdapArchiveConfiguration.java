@@ -124,6 +124,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 ext.getDeleteUPSCanceledDelay(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmOverwritePolicy",
                 ext.getOverwritePolicy(), OverwritePolicy.NEVER);
+        LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmRelationalMismatchPolicy",
+                ext.getRelationalMismatchPolicy(), RelationalMismatchPolicy.IGNORE);
         LdapUtils.storeNotDef(ldapObj, attrs, "dcmRecordAttributeModification",
                 ext.isRecordAttributeModification(), true);
         LdapUtils.storeNotDef(ldapObj, attrs, "dcmIdentifyPatientByAllAttributes",
@@ -234,6 +236,7 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 ext.isDeleteStudyLeastRecentlyAccessedFirst(), true);
         LdapUtils.storeNotDef(ldapObj, attrs, "dcmDeletePatientOnDeleteLastStudy",
                 ext.isDeletePatientOnDeleteLastStudy(), false);
+        LdapUtils.storeNotDef(ldapObj, attrs, "dcmDBReadOnly", ext.isDBReadOnly(), false);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmMaxAccessTimeStaleness",
                 ext.getMaxAccessTimeStaleness(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmAECacheStaleTimeout",
@@ -553,6 +556,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 ext.getHL7PrimaryAssigningAuthorityOfPatientID(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "hl7OtherPatientIDs", 
                 ext.getHL7OtherPatientIDs(), HL7OtherPatientIDs.OTHER);
+        LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmQStarVerificationStorageID",
+                ext.getQStarVerificationStorageID(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmQStarVerificationPollingInterval",
                 ext.getQStarVerificationPollingInterval(), null);
         LdapUtils.storeNotDef(ldapObj, attrs, "dcmQStarVerificationFetchSize",
@@ -596,6 +601,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
         ext.setDeleteUPSCanceledDelay(toDuration(attrs.get("dcmDeleteUPSCanceledDelay"), null));
         ext.setOverwritePolicy(
                 LdapUtils.enumValue(OverwritePolicy.class, attrs.get("dcmOverwritePolicy"), OverwritePolicy.NEVER));
+        ext.setRelationalMismatchPolicy(LdapUtils.enumValue(
+                RelationalMismatchPolicy.class, attrs.get("dcmRelationalMismatchPolicy"), RelationalMismatchPolicy.IGNORE));
         ext.setRecordAttributeModification(
                 LdapUtils.booleanValue(attrs.get("dcmRecordAttributeModification"), true));
         ext.setIdentifyPatientByAllAttributes(
@@ -669,6 +676,7 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
         ext.setDeleteStudyLeastRecentlyAccessedFirst(LdapUtils.booleanValue(attrs.get("dcmDeleteStudyLeastRecentlyAccessedFirst"), true));
         ext.setDeletePatientOnDeleteLastStudy(
                 LdapUtils.booleanValue(attrs.get("dcmDeletePatientOnDeleteLastStudy"), false));
+        ext.setDBReadOnly(LdapUtils.booleanValue(attrs.get("dcmDBReadOnly"), false));
         ext.setMaxAccessTimeStaleness(toDuration(attrs.get("dcmMaxAccessTimeStaleness"), null));
         ext.setAECacheStaleTimeout(toDuration(attrs.get("dcmAECacheStaleTimeout"), null));
         ext.setLeadingCFindSCPQueryCacheStaleTimeout(toDuration(attrs.get("dcmLeadingCFindSCPQueryCacheStaleTimeout"), null));
@@ -920,6 +928,7 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
         ext.setKeyValueRetentionPollingInterval(toDuration(attrs.get("dcmKeyValueRetentionPollingInterval"), null));
         ext.setKeyValueRetentionFetchSize(LdapUtils.intValue(attrs.get("dcmKeyValueRetentionFetchSize"), 100));
         ext.setKeyValueRetentionPeriod(toDuration(attrs.get("dcmKeyValueRetentionPeriod"), null));
+        ext.setQStarVerificationStorageID(LdapUtils.stringValue(attrs.get("setQStarVerificationStorageID"), null));
         ext.setQStarVerificationPollingInterval(toDuration(attrs.get("dcmQStarVerificationPollingInterval"), null));
         ext.setQStarVerificationFetchSize(LdapUtils.intValue(attrs.get("dcmQStarVerificationFetchSize"), 100));
         ext.setQStarVerificationDelay(toDuration(attrs.get("dcmQStarVerificationDelay"), null));
@@ -1004,6 +1013,9 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmOverwritePolicy",
                 aa.getOverwritePolicy(),
                 bb.getOverwritePolicy(), OverwritePolicy.NEVER);
+        LdapUtils.storeDiffObject(ldapObj, mods, "dcmRelationalMismatchPolicy",
+                aa.getRelationalMismatchPolicy(),
+                bb.getRelationalMismatchPolicy(), RelationalMismatchPolicy.IGNORE);
         LdapUtils.storeDiff(ldapObj, mods, "dcmRecordAttributeModification",
                 aa.isRecordAttributeModification(),
                 bb.isRecordAttributeModification(),
@@ -1147,6 +1159,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 aa.isDeleteStudyLeastRecentlyAccessedFirst(), bb.isDeleteStudyLeastRecentlyAccessedFirst(), true);
         LdapUtils.storeDiff(ldapObj, mods, "dcmDeletePatientOnDeleteLastStudy",
                 aa.isDeletePatientOnDeleteLastStudy(), bb.isDeletePatientOnDeleteLastStudy(), false);
+        LdapUtils.storeDiff(ldapObj, mods, "dcmDBReadOnly",
+                aa.isDBReadOnly(), bb.isDBReadOnly(), false);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmMaxAccessTimeStaleness",
                 aa.getMaxAccessTimeStaleness(), bb.getMaxAccessTimeStaleness(), null);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmAECacheStaleTimeout",
@@ -1598,6 +1612,9 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 100);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmKeyValueRetentionPeriod",
                 aa.getKeyValueRetentionPeriod(), bb.getKeyValueRetentionPeriod(), null);
+        LdapUtils.storeDiffObject(ldapObj, mods, "dcmQStarVerificationStorageID",
+                aa.getQStarVerificationStorageID(),
+                bb.getQStarVerificationStorageID(), null);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmQStarVerificationPollingInterval",
                 aa.getQStarVerificationPollingInterval(),
                 bb.getQStarVerificationPollingInterval(), null);
@@ -1775,6 +1792,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 ext.getStoreAccessControlID(), null);
         LdapUtils.storeNotEmpty(ldapObj, attrs, "dcmAccessControlID", ext.getAccessControlIDs());
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmOverwritePolicy", ext.getOverwritePolicy(), null);
+        LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmRelationalMismatchPolicy",
+                ext.getRelationalMismatchPolicy(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmRecordAttributeModification",
                 ext.getRecordAttributeModification(), null);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmBulkDataSpoolDirectory",
@@ -1977,6 +1996,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
         ext.setStoreAccessControlID(LdapUtils.stringValue(attrs.get("dcmStoreAccessControlID"), null));
         ext.setAccessControlIDs(LdapUtils.stringArray(attrs.get("dcmAccessControlID")));
         ext.setOverwritePolicy(LdapUtils.enumValue(OverwritePolicy.class, attrs.get("dcmOverwritePolicy"), null));
+        ext.setRelationalMismatchPolicy(LdapUtils.enumValue(
+                RelationalMismatchPolicy.class, attrs.get("dcmRelationalMismatchPolicy"), null));
         ext.setRecordAttributeModification(LdapUtils.booleanValue(attrs.get("dcmRecordAttributeModification"), null));
         ext.setBulkDataSpoolDirectory(LdapUtils.stringValue(attrs.get("dcmBulkDataSpoolDirectory"), null));
         ext.setQueryRetrieveViewID(LdapUtils.stringValue(attrs.get("dcmQueryRetrieveViewID"), null));
@@ -2172,6 +2193,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 aa.getAccessControlIDs(), bb.getAccessControlIDs());
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmOverwritePolicy",
                 aa.getOverwritePolicy(), bb.getOverwritePolicy(), null);
+        LdapUtils.storeDiffObject(ldapObj, mods, "dcmRelationalMismatchPolicy",
+                aa.getRelationalMismatchPolicy(), bb.getRelationalMismatchPolicy(), null);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmRecordAttributeModification",
                 aa.getRecordAttributeModification(), bb.getRecordAttributeModification(), null);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmBulkDataSpoolDirectory",
@@ -2829,6 +2852,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 descriptor.getExternalRetrieveInstanceAvailability(), null);
         LdapUtils.storeNotEmpty(ldapObj, attrs, "dcmExportStorageID",
                 descriptor.getExportStorageID());
+        LdapUtils.storeNotDef(ldapObj, attrs, "dcmSingleExportStorageByStudy",
+                descriptor.isSingleExportStorageByStudy(), false);
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmRetrieveCacheStorageID",
                 descriptor.getRetrieveCacheStorageID(), null);
         LdapUtils.storeNotDef(ldapObj, attrs, "dcmNoRetrieveCacheOnPurgedInstanceRecords",
@@ -2892,6 +2917,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 desc.setExternalRetrieveInstanceAvailability(LdapUtils.enumValue(
                         Availability.class, attrs.get("dcmExternalRetrieveInstanceAvailability"), null));
                 desc.setExportStorageID(LdapUtils.stringArray(attrs.get("dcmExportStorageID")));
+                desc.setSingleExportStorageByStudy(
+                        LdapUtils.booleanValue(attrs.get("dcmSingleExportStorageByStudy"), false));
                 desc.setRetrieveCacheStorageID(
                         LdapUtils.stringValue(attrs.get("dcmRetrieveCacheStorageID"), null));
                 desc.setNoRetrieveCacheOnPurgedInstanceRecords(
@@ -3011,6 +3038,10 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 prev.getExternalRetrieveInstanceAvailability(), desc.getExternalRetrieveInstanceAvailability(), null);
         LdapUtils.storeDiff(ldapObj, mods, "dcmExportStorageID",
                 prev.getExportStorageID(), desc.getExportStorageID());
+        LdapUtils.storeDiff(ldapObj, mods, "dcmSingleExportStorageByStudy",
+                prev.isSingleExportStorageByStudy(),
+                desc.isSingleExportStorageByStudy(),
+                false);
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmRetrieveCacheStorageID",
                 prev.getRetrieveCacheStorageID(), desc.getRetrieveCacheStorageID(), null);
         LdapUtils.storeDiff(ldapObj, mods, "dcmNoRetrieveCacheOnPurgedInstanceRecords",
@@ -5140,6 +5171,8 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
         LdapUtils.storeNotEmpty(ldapObj, attrs, "dcmProperty", rule.getConditions().getMap());
         LdapUtils.storeNotNullOrDef(ldapObj, attrs, "dcmStoreAccessControlID", rule.getStoreAccessControlID(), null);
         LdapUtils.storeNotDef(ldapObj, attrs, "dcmRulePriority", rule.getPriority(), 0);
+        LdapUtils.storeNotDef(ldapObj, attrs, "dcmAccessControlSeriesIndividually",
+                rule.isAccessControlSeriesIndividually(), false);
         return attrs;
     }
 
@@ -5244,6 +5277,7 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
                 rule.setConditions(new Conditions(LdapUtils.stringArray(attrs.get("dcmProperty"))));
                 rule.setStoreAccessControlID(LdapUtils.stringValue(attrs.get("dcmStoreAccessControlID"), null));
                 rule.setPriority(LdapUtils.intValue(attrs.get("dcmRulePriority"), 0));
+                rule.setAccessControlSeriesIndividually(LdapUtils.booleanValue(attrs.get("dcmAccessControlSeriesIndividually"), false));
                 rules.add(rule);
             }
         } finally {
@@ -5719,6 +5753,9 @@ public class LdapArchiveConfiguration extends LdapDicomConfigurationExtension {
         LdapUtils.storeDiffObject(ldapObj, mods, "dcmStoreAccessControlID",
                 prev.getStoreAccessControlID(), rule.getStoreAccessControlID(), null);
         LdapUtils.storeDiff(ldapObj, mods, "dcmRulePriority", prev.getPriority(), rule.getPriority(), 0);
+        LdapUtils.storeDiff(ldapObj, mods, "dcmAccessControlSeriesIndividually",
+                prev.isAccessControlSeriesIndividually(),
+                rule.isAccessControlSeriesIndividually(), false);
         return mods;
     }
 

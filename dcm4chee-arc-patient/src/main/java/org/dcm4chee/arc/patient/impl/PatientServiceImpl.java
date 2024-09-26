@@ -40,6 +40,7 @@
 
 package org.dcm4chee.arc.patient.impl;
 
+import jakarta.ejb.EJBException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -52,6 +53,7 @@ import org.dcm4che3.net.Connection;
 import org.dcm4che3.net.Device;
 import org.dcm4che3.net.hl7.HL7Application;
 import org.dcm4che3.net.hl7.UnparsedHL7Message;
+import org.dcm4che3.net.service.DicomServiceException;
 import org.dcm4che3.util.AttributesFormat;
 import org.dcm4chee.arc.conf.ArchiveDeviceExtension;
 import org.dcm4chee.arc.conf.AttributeFilter;
@@ -60,6 +62,8 @@ import org.dcm4chee.arc.entity.PatientID;
 import org.dcm4chee.arc.entity.Study;
 import org.dcm4chee.arc.keycloak.HttpServletRequestInfo;
 import org.dcm4chee.arc.patient.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.Socket;
 import java.util.Collection;
@@ -74,6 +78,7 @@ import java.util.Set;
  */
 @ApplicationScoped
 public class PatientServiceImpl implements PatientService {
+    private static final Logger LOG = LoggerFactory.getLogger(PatientServiceImpl.class);
 
     @Inject
     private PatientServiceEJB ejb;
@@ -130,6 +135,7 @@ public class PatientServiceImpl implements PatientService {
             return ejb.createPatient(ctx);
         } catch (RuntimeException e) {
             ctx.setException(e);
+            ctx.setEventActionCode(AuditMessages.EventActionCode.Create);
             throw e;
         } finally {
             if (ctx.getEventActionCode() != null)
@@ -143,15 +149,40 @@ public class PatientServiceImpl implements PatientService {
         try {
             Patient patient;
             do {
-                patient = ejb.updatePatient(ctx);
+                patient = updatePatient0(ctx);
             } while (deleteDuplicateCreatedPatient(ctx, patient));
             return patient;
         } catch (RuntimeException e) {
             ctx.setException(e);
+            ctx.setEventActionCode(AuditMessages.EventActionCode.Update);
             throw e;
         } finally {
             if (ctx.getEventActionCode() != null)
                 patientMgtEvent.fire(ctx);
+        }
+    }
+
+    private Patient updatePatient0(PatientMgtContext ctx) {
+        ArchiveDeviceExtension arcDev = device.getDeviceExtension(ArchiveDeviceExtension.class);
+        int retries = arcDev.getStoreUpdateDBMaxRetries();
+        for (;;) {
+            try {
+                return ejb.updatePatient(ctx);
+            } catch (EJBException e) {
+                if (retries-- > 0) {
+                    LOG.info("Failure on update {} by {} - retry",
+                            ctx.getPatient(),
+                            DicomServiceException.initialCauseOf(e));
+                } else {
+                    LOG.warn("Failure on deleting {} from database:\n", ctx.getPatient(), e);
+                    throw e;
+                }
+            }
+            try {
+                Thread.sleep(arcDev.storeUpdateDBRetryDelay());
+            } catch (InterruptedException e) {
+                LOG.info("Failed to delay retry of updating patient:\n", e);
+            }
         }
     }
 
@@ -193,6 +224,7 @@ public class PatientServiceImpl implements PatientService {
             return ejb.mergePatient(ctx);
         } catch (RuntimeException e) {
             ctx.setException(e);
+            ctx.setEventActionCode(AuditMessages.EventActionCode.Update);
             throw e;
         } finally {
             if (ctx.getEventActionCode() != null)
@@ -206,6 +238,7 @@ public class PatientServiceImpl implements PatientService {
             return ejb.unmergePatient(ctx);
         } catch (RuntimeException e) {
             ctx.setException(e);
+            ctx.setEventActionCode(AuditMessages.EventActionCode.Create);
             throw e;
         } finally {
             if (ctx.getEventActionCode() != null)
@@ -224,6 +257,7 @@ public class PatientServiceImpl implements PatientService {
             return ejb.changePatientID(ctx);
         } catch (RuntimeException e) {
             ctx.setException(e);
+            ctx.setEventActionCode(AuditMessages.EventActionCode.Update);
             throw e;
         } finally {
             if (ctx.getEventActionCode() != null)
@@ -257,8 +291,15 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public void deletePatient(PatientMgtContext ctx) {
-        ejb.deletePatient(ctx.getPatient());
-        patientMgtEvent.fire(ctx);
+        try {
+            ejb.deletePatient(ctx.getPatient());
+        } catch (Exception e) {
+            LOG.warn("Failed to delete {} from database:\n", ctx.getPatient(), e);
+            ctx.setException(e);
+            throw e;
+        } finally {
+            patientMgtEvent.fire(ctx);
+        }
     }
 
     @Override

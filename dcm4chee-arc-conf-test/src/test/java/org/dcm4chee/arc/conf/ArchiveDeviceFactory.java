@@ -80,7 +80,7 @@ class ArchiveDeviceFactory {
     static final String IOCM_EXPIRED_DESC = "Only show instances rejected for Data Retention Expired";
     static final String IOCM_PAT_SAFETY_DESC = "Only show instances rejected for Patient Safety Reasons";
     static final String IOCM_WRONG_MWL_DESC = "Only show instances rejected for Incorrect Modality Worklist Entry";
-    static final String AS_RECEIVED_DESC = "Retrieve instances as received";
+    static final String AS_RECEIVED_DESC = "Retrieve instances as received without hiding rejected instances";
 
     enum ConfigType {
         DEFAULT,
@@ -874,7 +874,8 @@ class ArchiveDeviceFactory {
             UID.PatientRadiationDoseSRStorage,
             UID.PlannedImagingAgentAdministrationSRStorage,
             UID.PerformedImagingAgentAdministrationSRStorage,
-            UID.EnhancedXRayRadiationDoseSRStorage
+            UID.EnhancedXRayRadiationDoseSRStorage,
+            UID.WaveformAnnotationSRStorage
     };
 
     static final String[] SR_TSUIDS = {
@@ -929,6 +930,8 @@ class ArchiveDeviceFactory {
             UID.SegmentationStorage,
             UID.SurfaceSegmentationStorage,
             UID.TractographyResultsStorage,
+            UID.LabelMapSegmentationStorage,
+            UID.HeightMapSegmentationStorage,
             UID.RealWorldValueMappingStorage,
             UID.SurfaceScanMeshStorage,
             UID.SurfaceScanPointCloudStorage,
@@ -1111,6 +1114,11 @@ class ArchiveDeviceFactory {
                     new Code[]{INCORRECT_MODALITY_WORKLIST_ENTRY},
                     new Code[0],
                     true);
+   static final QueryRetrieveView IOCM_DISABLED_VIEW =
+            createQueryRetrieveView("iocmDisabled",
+                    REJECTION_CODES,
+                    new Code[0],
+                    false);
 
     static final String USER = "user";
     static final String ONLY_ADMIN = "admin";
@@ -1243,6 +1251,7 @@ class ArchiveDeviceFactory {
     static final String ENSURE_PID = "xslt:${jboss.server.temp.url}/dcm4chee-arc/ensure-pid.xsl";
     static final String MERGE_MWL = "merge-mwl:${jboss.server.temp.url}/dcm4chee-arc/mwl2series.xsl";
     static final String MERGE_MWL_STUDY = "merge-mwl:${jboss.server.temp.url}/dcm4chee-arc/mwl2study.xsl";
+    static final String MERGE_MWL_MPPS = "merge-mwl:${jboss.server.temp.url}/dcm4chee-arc/mwl2mpps.xsl";
     static final String COERCE_MWL_AGFA2ARC = "xslt:${jboss.server.temp.url}/dcm4chee-arc/mwl-agfa2arc.xsl";
     static final String AUDIT2JSONFHIR_XSL = "${jboss.server.temp.url}/dcm4chee-arc/audit2json+fhir.xsl";
     static final String AUDIT2XMLFHIR_XSL = "${jboss.server.temp.url}/dcm4chee-arc/audit2xml+fhir.xsl";
@@ -1576,7 +1585,7 @@ class ArchiveDeviceFactory {
                 false, false, false, true, false, false, false, false, null,
                 configType));
         device.addApplicationEntity(createAE("AS_RECEIVED", AS_RECEIVED_DESC,
-                dicom, dicomTLS, REGULAR_USE_VIEW,
+                dicom, dicomTLS, IOCM_DISABLED_VIEW,
                 false, true, false, true, false, false, false, false,
                 new ArchiveAttributeCoercion2[] {
                     new ArchiveAttributeCoercion2()
@@ -1833,6 +1842,7 @@ class ArchiveDeviceFactory {
         ext.addQueryRetrieveView(IOCM_PAT_SAFETY_VIEW);
         ext.addQueryRetrieveView(IOCM_QUALITY_VIEW);
         ext.addQueryRetrieveView(IOCM_WRONG_MWL_VIEW);
+        ext.addQueryRetrieveView(IOCM_DISABLED_VIEW);
 
         BasicBulkDataDescriptor bulkDataDescriptor = new BasicBulkDataDescriptor(BULK_DATA_DESCRIPTOR_ID);
         bulkDataDescriptor.setLengthsThresholdsFromStrings(BULK_DATA_LENGTH_THRESHOLD);
@@ -2196,6 +2206,16 @@ class ArchiveDeviceFactory {
                     .setRole(SCU)
                     .setSendingAETitle("MERGE_MWL_STUDY")
                     .setCoercionParam("match-by", MergeMWLMatchingKey.AccessionNumber.name())
+                    .setCoercionParam("xsl-no-keyword", "true"));
+
+            ext.addAttributeCoercion2(new ArchiveAttributeCoercion2()
+                    .setCommonName("Merge MWL MPPS")
+                    .setURI(MERGE_MWL_STUDY)
+                    .setDIMSE(Dimse.N_CREATE_RQ)
+                    .setRole(SCU)
+                    .setSendingAETitle("MERGE_MWL_MPPS")
+                    .setCoercionParam("match-by", MergeMWLMatchingKey.AccessionNumber.name())
+                    .setCoercionParam("mwl-entity-to-merge", "mpps")
                     .setCoercionParam("xsl-no-keyword", "true"));
 
             ext.addAttributeCoercion2(new ArchiveAttributeCoercion2()

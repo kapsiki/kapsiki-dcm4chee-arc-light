@@ -106,7 +106,7 @@ public class AuditTriggerObserver {
 
     public void onRetrieveWADO(@Observes @RetrieveWADO RetrieveContext ctx) {
         if (deviceHasAuditLoggers())
-            auditService.spoolRetrieveWADO(ctx);
+            auditService.spoolWADOURI(ctx);
     }
 
     public void onStudyDeleted(@Observes StudyDeleteContext ctx) {
@@ -134,6 +134,20 @@ public class AuditTriggerObserver {
                     auditService.spoolConnectionFailure(event);
                     break;
             }
+    }
+
+    public void onAssociation(@Observes AssociationEvent associationEvent) {
+        if (deviceHasAuditLoggers()) {
+            switch (associationEvent.getType()) {
+                case ACCEPTED:
+                case ESTABLISHED:
+                    break;
+                case FAILED:
+                case REJECTED:
+                    auditService.spoolAssociationFailure(associationEvent);
+                    break;
+            }
+        }
     }
 
     public void onPatientUpdate(@Observes PatientMgtContext ctx) {
@@ -179,28 +193,14 @@ public class AuditTriggerObserver {
             auditService.spoolTaskEvent(queueMsgEvent);
     }
 
-    public void onBulkQueueMessageEvent(@Observes BulkTaskEvent bulkQueueMsgEvent) {
+    public void onBulkQueueMessageEvent(@Observes BulkTaskEvent bulkTasksEvent) {
         if (deviceHasAuditLoggers())
-            auditService.spoolBulkQueueMessageEvent(bulkQueueMsgEvent);
+            auditService.spoolBulkTasksEvent(bulkTasksEvent);
     }
 
     public void onHL7Message(@Observes HL7ConnectionEvent hl7ConnectionEvent) {
         if (deviceHasAuditLoggers())
             auditService.spoolHL7Message(hl7ConnectionEvent);
-    }
-
-    public void onAssociation(@Observes AssociationEvent associationEvent) {
-        if (deviceHasAuditLoggers()) {
-            switch (associationEvent.getType()) {
-                case ACCEPTED:
-                case ESTABLISHED:
-                    break;
-                case FAILED:
-                case REJECTED:
-                    auditService.spoolAssociationFailure(associationEvent);
-                    break;
-            }
-        }
     }
 
     public void onStudySizeEvent(@Observes StudySizeEvent event) {

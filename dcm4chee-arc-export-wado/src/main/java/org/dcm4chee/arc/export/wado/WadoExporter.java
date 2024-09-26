@@ -151,7 +151,7 @@ public class WadoExporter extends AbstractExporter {
             MessageFormat format = new MessageFormat(targetURI.replace('[', '{').replace(']', '}'));
             Entity entity = Entity.values()[format.getFormats().length];
             List<QueryRetrieveRequest> list = queryRetrieveRequests.computeIfAbsent(entity, k -> new ArrayList<>(2));
-            list.add(new QueryRetrieveRequest(format, token(), device, descriptor, queryRetrieveWebApp));
+            list.add(new QueryRetrieveRequest(format, device, descriptor));
         } catch (ConfigurationException e) {
             LOG.info("Failed to find Web Application for request invocation for {} : {}",
                     uriSchemeSpecificPart, e.getMessage());
@@ -199,21 +199,29 @@ public class WadoExporter extends AbstractExporter {
 
     private boolean invoke(QueryRetrieveRequest queryRetrieveRequest, Object[] params, byte[] buffer, Map<String, Storage> storageMap)
             throws Exception {
-        Invocation.Builder request = queryRetrieveRequest.openConnection(params, accessTokenRequestor);
-        try (Response response = request.get()) {
-            Response.StatusType statusInfo = response.getStatusInfo();
-            if (statusInfo.getFamily() != Response.Status.Family.SUCCESSFUL) {
-                LOG.info("Invocation of request {} failed with status {} {}",
-                        queryRetrieveRequest.getTargetURL(),
-                        statusInfo.getStatusCode(),
-                        statusInfo.getReasonPhrase());
-                if (ignoreNotFound && (response.getStatus() == 404 || response.getStatus() == 410))
-                    return false;
-                throw new IOException("HTTP " + statusInfo.getStatusCode() + ' ' + statusInfo.getReasonPhrase());
-            }
-            try (InputStream in = response.readEntity(InputStream.class);
-                 OutputStream out = getOutputStream(queryRetrieveRequest.storageDescriptor, params, storageMap)) {
-                StreamUtils.copy(in, out, buffer);
+        String targetURL = queryRetrieveRequest.getFormattedParams(params);
+        try (ResteasyClient client = accessTokenRequestor.resteasyClientBuilder(targetURL, queryRetrieveWebApp).build()) {
+            WebTarget target = client.target(targetURL);
+            Invocation.Builder request = target.request();
+            queryRetrieveRequest.getHeaderFields().forEach((k,v) -> request.header(k.toString(), v));
+            String token = token();
+            if (token != null)
+                request.header("Authorization", "Bearer " + token);
+            try (Response response = request.get()) {
+                Response.StatusType statusInfo = response.getStatusInfo();
+                if (statusInfo.getFamily() != Response.Status.Family.SUCCESSFUL) {
+                    LOG.info("Invocation of request {} failed with status {} {}",
+                            targetURL,
+                            statusInfo.getStatusCode(),
+                            statusInfo.getReasonPhrase());
+                    if (ignoreNotFound && (response.getStatus() == 404 || response.getStatus() == 410))
+                        return false;
+                    throw new IOException("HTTP " + statusInfo.getStatusCode() + ' ' + statusInfo.getReasonPhrase());
+                }
+                try (InputStream in = response.readEntity(InputStream.class);
+                     OutputStream out = getOutputStream(queryRetrieveRequest.storageDescriptor, params, storageMap)) {
+                    StreamUtils.copy(in, out, buffer);
+                }
             }
         }
         return true;
@@ -309,21 +317,15 @@ public class WadoExporter extends AbstractExporter {
         final MessageFormat format;
         final EnumMap<HeaderField,String> headerFields;
         final StorageDescriptor storageDescriptor;
-        final String token;
         final ExporterDescriptor exporterDescriptor;
-        final WebApplication queryRetrieveWebApp;
         final Device device;
-        String targetURL;
 
-        QueryRetrieveRequest(MessageFormat format, String token, Device device, ExporterDescriptor exporterDescriptor,
-                             WebApplication queryRetrieveWebApp) {
+        QueryRetrieveRequest(MessageFormat format, Device device, ExporterDescriptor exporterDescriptor) {
             this.format = format;
             this.exporterDescriptor = exporterDescriptor;
-            this.queryRetrieveWebApp = queryRetrieveWebApp;
             this.device = device;
             this.storageDescriptor = toStorageDescriptor();
             this.headerFields = toHeaderFields();
-            this.token = token;
         }
 
         private enum HeaderField {
@@ -358,20 +360,12 @@ public class WadoExporter extends AbstractExporter {
             return headerFields;
         }
 
-        String getTargetURL() {
-            return targetURL;
+        EnumMap<HeaderField, String> getHeaderFields() {
+            return headerFields;
         }
 
-        Invocation.Builder openConnection(Object[] params, AccessTokenRequestor accessTokenRequestor)
-                throws Exception {
-            targetURL = format.format(params);
-            ResteasyClient client = accessTokenRequestor.resteasyClientBuilder(targetURL, queryRetrieveWebApp).build();
-            WebTarget target = client.target(targetURL);
-            Invocation.Builder request = target.request();
-            headerFields.forEach((k,v) -> request.header(k.toString(), v));
-            if (token != null)
-                request.header("Authorization", "Bearer " + token);
-            return request;
+        String getFormattedParams(Object[] params) {
+            return format.format(params);
         }
     }
 }

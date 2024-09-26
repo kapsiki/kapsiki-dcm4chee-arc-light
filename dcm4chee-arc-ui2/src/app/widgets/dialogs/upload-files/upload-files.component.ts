@@ -31,12 +31,32 @@ import {MatDialogRef} from "@angular/material/dialog";
         }
         .edit_attribute_button{
             margin-top: 15px;
+            overflow: auto;
+            max-height: 32vh;
+        }
+        input[type=checkbox]{
+            clear: both;
+            width: auto;
+            height: 20px;
+            margin-top: 0;
+            margin-right: 7px;
+        }
+        label.simple_label{
+            vertical-align: middle;
+            height: 26px;
+            margin-top: 35px;
+        }
+        .mat-mdc-dialog-content.mdc-dialog__content{
+            float: left;
+        }
+        .edit_attribute_block{
+            max-height: 32vh;
         }
     `]
 })
 export class UploadFilesComponent implements OnInit {
 
-
+    uploadFolder:boolean = false;
     private _aes;
     private _selectedAe;
     private _dicomObject;

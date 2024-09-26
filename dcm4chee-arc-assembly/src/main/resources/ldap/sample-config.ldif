@@ -182,6 +182,7 @@ dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.67
 dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.11
 dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.22
 dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.33
+dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.77
 dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.69
 dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.35
 dcmWadoSupportedSRClasses: 1.2.840.10008.5.1.4.1.1.88.68
@@ -1118,6 +1119,15 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: General Audio Waveform Storage SCP
 
+dn: cn=Label Map Segmentation Storage SCP,dicomAETitle=STORESCP,dicomDeviceName=storescp,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.7
+dicomTransferRole: SCP
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Label Map Segmentation Storage SCP
+
 dn: cn=Nuclear Medicine Image Storage SCP,dicomAETitle=STORESCP,dicomDeviceName=storescp,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.20
 dicomTransferRole: SCP
@@ -1160,6 +1170,15 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Video Endoscopic Image Storage SCP
 
+dn: cn=Waveform Annotation SR Storage SCP,dicomAETitle=STORESCP,dicomDeviceName=storescp,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.88.77
+dicomTransferRole: SCP
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Waveform Annotation SR Storage SCP
+
 dn: cn=Ambulatory ECG Waveform Storage SCP,dicomAETitle=STORESCP,dicomDeviceName=storescp,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.9.1.3
 dicomTransferRole: SCP
@@ -1195,6 +1214,15 @@ dicomTransferSyntax: 1.2.840.10008.1.2.1
 objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Enhanced MR Color Image Storage SCP
+
+dn: cn=Height Map Segmentation Storage SCP,dicomAETitle=STORESCP,dicomDeviceName=storescp,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.8
+dicomTransferRole: SCP
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Height Map Segmentation Storage SCP
 
 dn: cn=Lensometry Measurements Storage SCP,dicomAETitle=STORESCP,dicomDeviceName=storescp,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.78.1
@@ -3259,6 +3287,7 @@ dcmTag: 00380060
 dcmTag: 00380062
 dcmTag: 00380064
 dcmTag: 00380500
+dcmTag: 00401012
 dcmEntity: Study
 objectClass: dcmAttributeFilter
 dcmAttributeUpdatePolicy: SUPPLEMENT
@@ -3318,6 +3347,17 @@ dcmDigestAlgorithm: MD5
 objectClass: dcmStorage
 dcmStorageID: fs1
 dcmURI: ${jboss.server.data.url}/fs1/
+
+dn: cn=Merge MWL MPPS,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dcmDIMSE: N_CREATE_RQ
+dicomTransferRole: SCU
+dcmCoercionParam: mwl-entity-to-merge=mpps
+dcmCoercionParam: xsl-no-keyword=true
+dcmCoercionParam: match-by=AccessionNumber
+dcmProperty: SendingApplicationEntityTitle=MERGE_MWL_MPPS
+objectClass: dcmArchiveAttributeCoercion2
+dcmURI: merge-mwl:${jboss.server.temp.url}/dcm4chee-arc/mwl2study.xsl
+cn: Merge MWL MPPS
 
 dn: dcmEntity=Patient,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dcmTag: 00080005
@@ -3874,8 +3914,8 @@ dcmMaxRetryDelay: PT10M
 
 dn: dicomAETitle=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomAssociationInitiator: TRUE
-dicomDescription: Retrieve instances as received
-dcmQueryRetrieveViewID: regularUse
+dicomDescription: Retrieve instances as received without hiding rejected instances
+dcmQueryRetrieveViewID: iocmDisabled
 objectClass: dicomNetworkAE
 objectClass: dcmNetworkAE
 objectClass: dcmArchiveNetworkAE
@@ -3908,7 +3948,7 @@ hl7OrderControlStatus: DC_CA
 objectClass: hl7OrderSPSStatus
 
 dn: dcmWebAppName=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
-dicomDescription: Retrieve instances as received
+dicomDescription: Retrieve instances as received without hiding rejected instances
 dcmWebServiceClass: WADO_RS
 dcmWebServiceClass: QIDO_RS
 dcmWebServiceClass: QIDO_COUNT
@@ -4124,7 +4164,7 @@ objectClass: dcmMetrics
 dcmUnit: ms
 
 dn: dcmWebAppName=AS_RECEIVED-WADO,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
-dicomDescription: Retrieve instances as received
+dicomDescription: Retrieve instances as received without hiding rejected instances
 dcmWebServiceClass: WADO_URI
 dcmProperty: roles=admin
 objectClass: dcmWebApp
@@ -4238,6 +4278,14 @@ dn: dcmQueryRetrieveViewID=hideRejected,dicomDeviceName=dcm4chee-arc,cn=Devices,
 dcmHideRejectionNoteWithCode: (113039, DCM, "Data Retention Policy Expired")
 dcmQueryRetrieveViewID: hideRejected
 objectClass: dcmQueryRetrieveView
+
+dn: dcmQueryRetrieveViewID=iocmDisabled,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dcmQueryRetrieveViewID: iocmDisabled
+objectClass: dcmQueryRetrieveView
+dcmShowInstancesRejectedByCode: (113001, DCM, "Rejected for Quality Reasons")
+dcmShowInstancesRejectedByCode: (113037, DCM, "Rejected for Patient Safety Reasons")
+dcmShowInstancesRejectedByCode: (113038, DCM, "Incorrect Modality Worklist Entry")
+dcmShowInstancesRejectedByCode: (113039, DCM, "Data Retention Policy Expired")
 
 dn: dcmUPSProcessingRuleID=DICOM_EXPORT,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 objectClass: dcmUPSProcessingRule
@@ -4516,6 +4564,8 @@ dcmTag: 00081040
 dcmTag: 00081041
 dcmTag: 00081048
 dcmTag: 00081050
+dcmTag: 00081070
+dcmTag: 00081072
 dcmTag: 00081080
 dcmTag: 00081084
 dcmTag: 00081090
@@ -4633,11 +4683,13 @@ dcmTag: 00400515
 dcmTag: 00400551
 dcmTag: 00400554
 dcmTag: 00400562
+dcmTag: 00401012
 dcmTag: 00403001
 dcmTag: 00409220
 dcmTag: 0040A032
 dcmTag: 0040A043
 dcmTag: 0040A073
+dcmTag: 0040A078
 dcmTag: 0040A360
 dcmTag: 0040A370
 dcmTag: 0040A375
@@ -6228,6 +6280,24 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: General Audio Waveform Storage SCU
 
+dn: cn=Label Map Segmentation Storage SCP,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.7
+dicomTransferRole: SCP
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Label Map Segmentation Storage SCP
+
+dn: cn=Label Map Segmentation Storage SCU,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.7
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Label Map Segmentation Storage SCU
+
 dn: cn=Nuclear Medicine Image Storage SCP,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.20
 dicomTransferRole: SCP
@@ -6336,6 +6406,26 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Video Endoscopic Image Storage SCU
 
+dn: cn=Waveform Annotation SR Storage SCP,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.88.77
+dicomTransferRole: SCP
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+dicomTransferSyntax: 1.2.840.10008.1.2.1.99
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Waveform Annotation SR Storage SCP
+
+dn: cn=Waveform Annotation SR Storage SCU,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.88.77
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+dicomTransferSyntax: 1.2.840.10008.1.2.1.99
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Waveform Annotation SR Storage SCU
+
 dn: cn=Ambulatory ECG Waveform Storage SCP,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.9.1.3
 dicomTransferRole: SCP
@@ -6431,6 +6521,24 @@ dicomTransferSyntax: 1.2.840.10008.1.2.5
 objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Enhanced MR Color Image Storage SCU
+
+dn: cn=Height Map Segmentation Storage SCP,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.8
+dicomTransferRole: SCP
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Height Map Segmentation Storage SCP
+
+dn: cn=Height Map Segmentation Storage SCU,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.8
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Height Map Segmentation Storage SCU
 
 dn: cn=Lensometry Measurements Storage SCP,dicomAETitle=DCM4CHEE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.78.1
@@ -12297,6 +12405,15 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: General Audio Waveform Storage SCU
 
+dn: cn=Label Map Segmentation Storage SCU,dicomAETitle=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.7
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Label Map Segmentation Storage SCU
+
 dn: cn=Nuclear Medicine Image Storage SCU,dicomAETitle=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.20
 dicomTransferRole: SCU
@@ -12351,6 +12468,16 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Video Endoscopic Image Storage SCU
 
+dn: cn=Waveform Annotation SR Storage SCU,dicomAETitle=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.88.77
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+dicomTransferSyntax: 1.2.840.10008.1.2.1.99
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Waveform Annotation SR Storage SCU
+
 dn: cn=Ambulatory ECG Waveform Storage SCU,dicomAETitle=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.9.1.3
 dicomTransferRole: SCU
@@ -12398,6 +12525,15 @@ dicomTransferSyntax: 1.2.840.10008.1.2.5
 objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Enhanced MR Color Image Storage SCU
+
+dn: cn=Height Map Segmentation Storage SCU,dicomAETitle=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.8
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Height Map Segmentation Storage SCU
 
 dn: cn=Lensometry Measurements Storage SCU,dicomAETitle=AS_RECEIVED,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.78.1
@@ -15829,6 +15965,15 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: General Audio Waveform Storage SCU
 
+dn: cn=Label Map Segmentation Storage SCU,dicomAETitle=IOCM_REGULAR_USE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.7
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Label Map Segmentation Storage SCU
+
 dn: cn=Nuclear Medicine Image Storage SCU,dicomAETitle=IOCM_REGULAR_USE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.20
 dicomTransferRole: SCU
@@ -15883,6 +16028,16 @@ objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Video Endoscopic Image Storage SCU
 
+dn: cn=Waveform Annotation SR Storage SCU,dicomAETitle=IOCM_REGULAR_USE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.88.77
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+dicomTransferSyntax: 1.2.840.10008.1.2.1.99
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Waveform Annotation SR Storage SCU
+
 dn: cn=Ambulatory ECG Waveform Storage SCU,dicomAETitle=IOCM_REGULAR_USE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.9.1.3
 dicomTransferRole: SCU
@@ -15930,6 +16085,15 @@ dicomTransferSyntax: 1.2.840.10008.1.2.5
 objectClass: dicomTransferCapability
 objectClass: dcmTransferCapability
 cn: Enhanced MR Color Image Storage SCU
+
+dn: cn=Height Map Segmentation Storage SCU,dicomAETitle=IOCM_REGULAR_USE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
+dicomSOPClass: 1.2.840.10008.5.1.4.1.1.66.8
+dicomTransferRole: SCU
+dicomTransferSyntax: 1.2.840.10008.1.2
+dicomTransferSyntax: 1.2.840.10008.1.2.1
+objectClass: dicomTransferCapability
+objectClass: dcmTransferCapability
+cn: Height Map Segmentation Storage SCU
 
 dn: cn=Lensometry Measurements Storage SCU,dicomAETitle=IOCM_REGULAR_USE,dicomDeviceName=dcm4chee-arc,cn=Devices,cn=DICOM Configuration,dc=dcm4che,dc=org
 dicomSOPClass: 1.2.840.10008.5.1.4.1.1.78.1
@@ -18443,10 +18607,6 @@ dicomAETitle: STORESCU
 dn: dicomAETitle=WORKLIST,cn=Unique AE Titles Registry,cn=DICOM Configuration,dc=dcm4che,dc=org
 objectClass: dicomUniqueAETitle
 dicomAETitle: WORKLIST
-
-dn: dicomAETitle=NEW_AET_A,cn=Unique AE Titles Registry,cn=DICOM Configuration,dc=dcm4che,dc=org
-objectClass: dicomUniqueAETitle
-dicomAETitle: NEW_AET_A
 
 dn: dicomAETitle=STGCMTSCU,cn=Unique AE Titles Registry,cn=DICOM Configuration,dc=dcm4che,dc=org
 objectClass: dicomUniqueAETitle
